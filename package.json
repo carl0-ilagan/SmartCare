@@ -59,7 +59,8 @@
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
     "@headlessui/react": "latest",
-    "firebase": "latest"
+    "firebase": "latest",
+    "@sendgrid/mail": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

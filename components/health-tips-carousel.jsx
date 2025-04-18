@@ -11,29 +11,34 @@ export function HealthTipsCarousel() {
       title: "Stay Hydrated",
       content:
         "Drinking enough water is crucial for your health. Aim for at least 8 glasses a day to maintain proper hydration.",
-      image: "/placeholder.svg?height=300&width=500",
+      image:
+        "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     },
     {
       title: "Regular Exercise",
       content:
         "Just 30 minutes of moderate exercise five days a week can significantly improve your physical and mental health.",
-      image: "/placeholder.svg?height=300&width=500",
+      image:
+        "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     },
     {
       title: "Balanced Diet",
       content:
         "Incorporate a variety of fruits, vegetables, whole grains, and lean proteins into your meals for optimal nutrition.",
-      image: "/placeholder.svg?height=300&width=500",
+      image:
+        "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     },
     {
       title: "Adequate Sleep",
       content: "Adults should aim for 7-9 hours of quality sleep each night to support overall health and well-being.",
-      image: "/placeholder.svg?height=300&width=500",
+      image:
+        "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?q=80&w=2942&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     },
     {
       title: "Stress Management",
       content: "Practice mindfulness, deep breathing, or meditation to help manage stress and improve mental health.",
-      image: "/placeholder.svg?height=300&width=500",
+      image:
+        "https://images.unsplash.com/photo-1506126613408-eca07ce68773?q=80&w=2702&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     },
   ]
 

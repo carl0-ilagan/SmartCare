@@ -6,12 +6,14 @@ import Image from "next/image"
 import { Menu, X, User } from "lucide-react"
 import { WelcomeSidebar } from "./welcome-sidebar"
 import { auth } from "@/lib/firebase"
+import { useMobile } from "@/hooks/use-mobile"
 
 export function Navbar() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [userType, setUserType] = useState(null)
+  const isMobile = useMobile()
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {

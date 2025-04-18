@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 
-// Define the hook as a function expression
-const useMobile = () => {
+// Export as a named export only
+export function useMobile() {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
@@ -24,6 +24,4 @@ const useMobile = () => {
   return isMobile
 }
 
-// Export both as named and default export
-export { useMobile }
-export default useMobile
+// Remove default export completely

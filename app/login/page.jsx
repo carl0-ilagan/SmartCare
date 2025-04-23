@@ -253,6 +253,13 @@ export default function LoginPage() {
                     Sign up
                   </Link>
                 </p>
+                <div className="mt-2 text-center">
+                  <p className="text-xs text-drift-gray">
+                    <button onClick={() => setShowAdminModal(true)} className="text-soft-amber hover:underline">
+                      Administrator Login
+                    </button>
+                  </p>
+                </div>
               </div>
             </div>
           </div>

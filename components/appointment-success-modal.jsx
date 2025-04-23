@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react"
 import { CheckCircle, X } from "lucide-react"
 
+<<<<<<< HEAD
 export function AppointmentSuccessModal({ isOpen, onClose, message, className = "" }) {
+=======
+export function AppointmentSuccessModal({ isOpen, onClose, message }) {
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   const [isVisible, setIsVisible] = useState(false)
 
   // Handle modal visibility with animation
@@ -46,7 +50,11 @@ export function AppointmentSuccessModal({ isOpen, onClose, message, className = 
       {/* Modal with animation */}
       <div
         id="success-modal-content"
+<<<<<<< HEAD
         className={`fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg ${className}`}
+=======
+        className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6 shadow-lg"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
         style={{ animation: "scaleIn 0.3s ease-in-out" }}
       >
         <div className="flex items-center justify-between">

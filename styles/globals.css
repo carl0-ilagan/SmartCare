@@ -2,10 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+<<<<<<< HEAD
 /* Removing the Arial font-family declaration to use Manrope */
 /* body {
   font-family: Arial, Helvetica, sans-serif;
 } */
+=======
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
 @layer utilities {
   .text-balance {

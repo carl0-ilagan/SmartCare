@@ -35,6 +35,7 @@ export function PrescriptionDetailModal({ isOpen, onClose, prescription, onEdit,
 
   if (!prescription) return null
 
+<<<<<<< HEAD
   // Update the handleDownload function in the component
   const handleDownload = () => {
     if (onDownload) {
@@ -42,6 +43,8 @@ export function PrescriptionDetailModal({ isOpen, onClose, prescription, onEdit,
     }
   }
 
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   return (
     <>
       {/* Backdrop with animation */}
@@ -75,11 +78,16 @@ export function PrescriptionDetailModal({ isOpen, onClose, prescription, onEdit,
               <User className="h-full w-full p-2 text-drift-gray" />
             </div>
             <div>
+<<<<<<< HEAD
               <p className="font-medium text-graphite">{prescription.patient || prescription.patientName}</p>
+=======
+              <p className="font-medium text-graphite">{prescription.patient}</p>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
             </div>
           </div>
 
           <div className="rounded-lg border border-pale-stone bg-pale-stone/30 p-4">
+<<<<<<< HEAD
             {prescription.medications && prescription.medications.length > 0 ? (
               <div className="space-y-4">
                 {prescription.medications.map((med, index) => (
@@ -194,6 +202,77 @@ export function PrescriptionDetailModal({ isOpen, onClose, prescription, onEdit,
             >
               <Download className="mr-2 h-4 w-4" />
               Download PDF
+=======
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-drift-gray">Medication</p>
+                <p className="font-medium text-graphite">{prescription.medication}</p>
+              </div>
+              <div>
+                <p className="text-sm text-drift-gray">Dosage</p>
+                <p className="font-medium text-graphite">{prescription.dosage}</p>
+              </div>
+              <div>
+                <p className="text-sm text-drift-gray">Frequency</p>
+                <p className="font-medium text-graphite">{prescription.frequency}</p>
+              </div>
+              <div>
+                <p className="text-sm text-drift-gray">Status</p>
+                <p className="font-medium capitalize text-graphite">{prescription.status}</p>
+              </div>
+              <div>
+                <p className="text-sm text-drift-gray">Start Date</p>
+                <p className="font-medium text-graphite">{new Date(prescription.startDate).toLocaleDateString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-drift-gray">End Date</p>
+                <p className="font-medium text-graphite">
+                  {prescription.endDate ? new Date(prescription.endDate).toLocaleDateString() : "No end date"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <p className="text-sm text-drift-gray">Notes</p>
+              <p className="text-graphite">{prescription.notes}</p>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => {
+                onEdit(prescription)
+                handleClose()
+              }}
+              className="inline-flex items-center rounded-md border border-earth-beige bg-white px-4 py-2 text-sm font-medium text-graphite transition-colors hover:bg-pale-stone"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="mr-2 h-4 w-4"
+              >
+                <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                <path d="m15 5 4 4" />
+              </svg>
+              Edit
+            </button>
+            <button
+              onClick={() => {
+                onDownload(prescription)
+                handleClose()
+              }}
+              className="inline-flex items-center rounded-md bg-soft-amber px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-600"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
             </button>
           </div>
         </div>

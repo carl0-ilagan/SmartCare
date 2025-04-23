@@ -1,4 +1,5 @@
 "use client"
+<<<<<<< HEAD
 import { useState, useEffect } from "react"
 import { Search, Filter, Check, X, Clock, Calendar, User } from "lucide-react"
 
@@ -223,6 +224,12 @@ const mockPendingAccounts = [
     avatar: "/placeholder.svg?height=40&width=40",
   },
 ]
+=======
+
+import { useState, useEffect } from "react"
+import { Search, Filter, Clock, Calendar, User } from "lucide-react"
+import { getPendingApprovals } from "@/lib/firebase"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
 export default function PendingAccountsPage() {
   const [pendingAccounts, setPendingAccounts] = useState([])
@@ -230,6 +237,7 @@ export default function PendingAccountsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
+<<<<<<< HEAD
   const [showApproveModal, setShowApproveModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [selectedAccount, setSelectedAccount] = useState(null)
@@ -246,6 +254,29 @@ export default function PendingAccountsPage() {
     }, 1000)
 
     return () => clearTimeout(timer)
+=======
+
+  // Fetch pending accounts data
+  useEffect(() => {
+    const fetchPendingAccounts = async () => {
+      setIsLoading(true)
+      try {
+        const result = await getPendingApprovals()
+        if (result.success) {
+          setPendingAccounts(result.pendingUsers || [])
+          setFilteredAccounts(result.pendingUsers || [])
+        } else {
+          console.error("Error fetching pending accounts:", result.error)
+        }
+      } catch (error) {
+        console.error("Error in fetchPendingAccounts:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchPendingAccounts()
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   }, [])
 
   // Handle search and filter
@@ -263,12 +294,17 @@ export default function PendingAccountsPage() {
 
     // Apply role filter
     if (roleFilter !== "all") {
+<<<<<<< HEAD
       result = result.filter((account) => account.role === roleFilter)
+=======
+      result = result.filter((account) => account.userType === roleFilter)
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     }
 
     setFilteredAccounts(result)
   }, [searchTerm, roleFilter, pendingAccounts])
 
+<<<<<<< HEAD
   // Handle account approval
   const handleApproveAccount = () => {
     if (selectedAccount) {
@@ -319,6 +355,8 @@ export default function PendingAccountsPage() {
     }
   }
 
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   // Format date
   const formatDate = (dateString) => {
     const options = { year: "numeric", month: "long", day: "numeric" }
@@ -343,7 +381,11 @@ export default function PendingAccountsPage() {
             <table className="min-w-full">
               <thead>
                 <tr>
+<<<<<<< HEAD
                   {[...Array(6)].map((_, i) => (
+=======
+                  {[...Array(5)].map((_, i) => (
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                     <th key={i} className="py-3 px-4 border-b border-earth-beige">
                       <div className="bg-gray-200 h-6 w-full rounded"></div>
                     </th>
@@ -353,7 +395,11 @@ export default function PendingAccountsPage() {
               <tbody>
                 {[...Array(5)].map((_, i) => (
                   <tr key={i}>
+<<<<<<< HEAD
                     {[...Array(6)].map((_, j) => (
+=======
+                    {[...Array(5)].map((_, j) => (
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                       <td key={j} className="py-4 px-4 border-b border-earth-beige">
                         <div className="bg-gray-200 h-6 w-full rounded"></div>
                       </td>
@@ -372,8 +418,13 @@ export default function PendingAccountsPage() {
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-graphite">
+<<<<<<< HEAD
           Pending Account Requests{" "}
           <span className="bg-red-500 text-white text-sm px-2 py-0.5 rounded-full ml-2">{pendingAccounts.length}</span>
+=======
+          Recent Account Registrations{" "}
+          <span className="bg-blue-500 text-white text-sm px-2 py-0.5 rounded-full ml-2">{pendingAccounts.length}</span>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
         </h1>
       </div>
 
@@ -405,7 +456,11 @@ export default function PendingAccountsPage() {
           </div>
         </div>
 
+<<<<<<< HEAD
         {/* Pending Accounts Table */}
+=======
+        {/* Accounts Table */}
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead>
@@ -420,24 +475,39 @@ export default function PendingAccountsPage() {
                   Role
                 </th>
                 <th className="py-3 px-4 text-left text-sm font-semibold text-drift-gray border-b border-earth-beige">
+<<<<<<< HEAD
                   Requested Date
+=======
+                  Created Date
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                 </th>
                 <th className="py-3 px-4 text-left text-sm font-semibold text-drift-gray border-b border-earth-beige">
                   Status
                 </th>
+<<<<<<< HEAD
                 <th className="py-3 px-4 text-right text-sm font-semibold text-drift-gray border-b border-earth-beige">
                   Actions
                 </th>
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
               </tr>
             </thead>
             <tbody>
               {filteredAccounts.length > 0 ? (
                 filteredAccounts.map((account) => (
+<<<<<<< HEAD
                   <tr key={account.id} className="hover:bg-pale-stone/50">
                     <td className="py-4 px-4 border-b border-earth-beige">
                       <div className="flex items-center">
                         <img
                           src={account.avatar || "/placeholder.svg"}
+=======
+                  <tr key={account.uid} className="hover:bg-pale-stone/50">
+                    <td className="py-4 px-4 border-b border-earth-beige">
+                      <div className="flex items-center">
+                        <img
+                          src={account.photoURL || "/placeholder.svg?height=40&width=40"}
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                           alt={account.name}
                           className="h-10 w-10 rounded-full mr-3"
                         />
@@ -448,10 +518,17 @@ export default function PendingAccountsPage() {
                     <td className="py-4 px-4 border-b border-earth-beige">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+<<<<<<< HEAD
                           account.role === "doctor" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
                         }`}
                       >
                         {account.role === "doctor" ? (
+=======
+                          account.userType === "doctor" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
+                        }`}
+                      >
+                        {account.userType === "doctor" ? (
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                           <>
                             <User className="h-3 w-3 mr-1" />
                             Doctor
@@ -463,13 +540,17 @@ export default function PendingAccountsPage() {
                           </>
                         )}
                       </span>
+<<<<<<< HEAD
                       {account.role === "doctor" && account.specialty && (
                         <span className="block text-xs text-drift-gray mt-1">{account.specialty}</span>
                       )}
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                     </td>
                     <td className="py-4 px-4 border-b border-earth-beige text-drift-gray">
                       <div className="flex items-center">
                         <Calendar className="h-4 w-4 mr-2 text-drift-gray" />
+<<<<<<< HEAD
                         {formatDate(account.requestedDate)}
                       </div>
                     </td>
@@ -505,12 +586,28 @@ export default function PendingAccountsPage() {
                         </button>
                       </div>
                     </td>
+=======
+                        {formatDate(account.createdAt || account.requestedAt)}
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 border-b border-earth-beige">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Active
+                      </span>
+                    </td>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                   </tr>
                 ))
               ) : (
                 <tr>
+<<<<<<< HEAD
                   <td colSpan={6} className="py-6 text-center text-drift-gray border-b border-earth-beige">
                     No pending accounts found matching your criteria.
+=======
+                  <td colSpan={5} className="py-6 text-center text-drift-gray border-b border-earth-beige">
+                    No accounts found matching your criteria.
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                   </td>
                 </tr>
               )}
@@ -522,7 +619,11 @@ export default function PendingAccountsPage() {
         <div className="flex justify-between items-center mt-6">
           <div className="text-sm text-drift-gray">
             Showing <span className="font-medium">{filteredAccounts.length}</span> of{" "}
+<<<<<<< HEAD
             <span className="font-medium">{pendingAccounts.length}</span> pending accounts
+=======
+            <span className="font-medium">{pendingAccounts.length}</span> accounts
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -544,6 +645,7 @@ export default function PendingAccountsPage() {
           </div>
         </div>
       </div>
+<<<<<<< HEAD
 
       {/* Approve Confirmation Modal */}
       {showApproveModal && (
@@ -607,6 +709,8 @@ export default function PendingAccountsPage() {
           {successMessage}
         </div>
       )}
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     </div>
   )
 }

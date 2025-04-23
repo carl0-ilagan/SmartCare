@@ -81,6 +81,7 @@ export function NotificationDropdown() {
   const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
+<<<<<<< HEAD
     <div className="p-2">
       <div className="flex items-center justify-between border-b border-pale-stone pb-2">
         <h3 className="text-sm font-medium text-graphite">Notifications</h3>
@@ -134,6 +135,63 @@ export function NotificationDropdown() {
         >
           View all notifications
         </Link>
+=======
+    <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-md border border-pale-stone bg-white shadow-lg">
+      <div className="p-2">
+        <div className="flex items-center justify-between border-b border-pale-stone pb-2">
+          <h3 className="text-sm font-medium text-graphite">Notifications</h3>
+          {unreadCount > 0 && (
+            <button onClick={markAllAsRead} className="text-xs font-medium text-soft-amber hover:underline">
+              Mark all as read
+            </button>
+          )}
+        </div>
+
+        <div className="max-h-96 overflow-y-auto">
+          {notifications.length > 0 ? (
+            <div className="divide-y divide-pale-stone">
+              {notifications.map((notification) => (
+                <Link
+                  key={notification.id}
+                  href={notification.link}
+                  className={`block p-3 transition-colors hover:bg-pale-stone ${!notification.read ? "bg-pale-stone/50" : ""}`}
+                  onClick={() => markAsRead(notification.id)}
+                >
+                  <div className="flex">
+                    <div className="flex-shrink-0 mr-3">{getIcon(notification.type)}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-graphite">{notification.title}</p>
+                      <p className="text-xs text-drift-gray line-clamp-2">{notification.message}</p>
+                      <p className="mt-1 text-xs text-drift-gray flex items-center">
+                        <Clock className="mr-1 h-3 w-3" />
+                        {notification.time}
+                      </p>
+                    </div>
+                    {!notification.read && (
+                      <div className="ml-2 flex-shrink-0">
+                        <div className="h-2 w-2 rounded-full bg-soft-amber"></div>
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="py-6 text-center text-sm text-drift-gray">
+              <p>No notifications</p>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-pale-stone pt-2">
+          <Link
+            href="/dashboard/notifications"
+            className="block text-center text-xs font-medium text-soft-amber hover:underline"
+          >
+            View all notifications
+          </Link>
+        </div>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
       </div>
     </div>
   )

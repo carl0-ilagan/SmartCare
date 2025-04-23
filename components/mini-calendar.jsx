@@ -1,5 +1,6 @@
 "use client"
 
+<<<<<<< HEAD
 import { useState, useRef } from "react"
 import { ChevronLeft, ChevronRight, Clock, AlertCircle } from "lucide-react"
 
@@ -12,6 +13,13 @@ export function MiniCalendar({
   const [currentDate, setCurrentDate] = useState(new Date())
   const [tooltipInfo, setTooltipInfo] = useState(null)
   const tooltipRef = useRef(null)
+=======
+import { useState } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
+export function MiniCalendar({ unavailableDates = [] }) {
+  const [currentDate, setCurrentDate] = useState(new Date())
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
   const monthNames = [
@@ -73,6 +81,7 @@ export function MiniCalendar({
     setCurrentDate(new Date(year, month + 1, 1))
   }
 
+<<<<<<< HEAD
   // Format date string for comparison
   const formatDateString = (day) => {
     if (!day) return ""
@@ -85,12 +94,19 @@ export function MiniCalendar({
 
     const dateString = formatDateString(day)
     return patientAppointments.filter((apt) => apt.date === dateString)
+=======
+  // Check if a day has an appointment (mock data)
+  const hasAppointment = (day) => {
+    // Mock data - appointments on the 5th, 12th, and 20th of the month
+    return day === 5 || day === 12 || day === 20
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   }
 
   // Check if a day is unavailable
   const isUnavailable = (day) => {
     if (!day) return false
 
+<<<<<<< HEAD
     const dateString = formatDateString(day)
     return unavailableDates.includes(dateString)
   }
@@ -150,6 +166,12 @@ export function MiniCalendar({
     setTooltipInfo(null)
   }
 
+=======
+    const dateString = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+    return unavailableDates.includes(dateString)
+  }
+
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   return (
     <div className="w-full">
       <div className="mb-4 flex items-center justify-between">
@@ -183,6 +205,7 @@ export function MiniCalendar({
         ))}
 
         {/* Calendar days */}
+<<<<<<< HEAD
         {calendarDays.map((day, index) => {
           const appointments = day ? getAppointmentsForDay(day) : []
           const hasAppointment = appointments.length > 0
@@ -241,23 +264,54 @@ export function MiniCalendar({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs">
+=======
+        {calendarDays.map((day, index) => (
+          <div
+            key={index}
+            className={`relative flex h-8 items-center justify-center rounded-md text-sm ${
+              day === null
+                ? "invisible"
+                : day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear()
+                  ? "bg-soft-amber font-medium text-white"
+                  : isUnavailable(day)
+                    ? "bg-red-100 font-medium text-red-500"
+                    : hasAppointment(day)
+                      ? "bg-pale-stone font-medium text-soft-amber"
+                      : "text-graphite hover:bg-pale-stone"
+            }`}
+          >
+            {day !== null && day}
+            {day !== null && hasAppointment(day) && !isUnavailable(day) && (
+              <span className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-soft-amber"></span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 flex items-center justify-center space-x-4 text-xs">
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
         <div className="flex items-center">
           <div className="mr-2 h-3 w-3 rounded-full bg-soft-amber"></div>
           <span className="text-drift-gray">Today</span>
         </div>
         <div className="flex items-center">
           <div className="mr-2 h-3 w-3 rounded-full bg-pale-stone border border-soft-amber"></div>
+<<<<<<< HEAD
           <span className="text-drift-gray">Upcoming</span>
         </div>
         <div className="flex items-center">
           <div className="mr-2 h-3 w-3 rounded-full bg-green-100 border border-green-500"></div>
           <span className="text-drift-gray">Completed</span>
+=======
+          <span className="text-drift-gray">Appointment</span>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
         </div>
         <div className="flex items-center">
           <div className="mr-2 h-3 w-3 rounded-full bg-red-100 border border-red-500"></div>
           <span className="text-drift-gray">Unavailable</span>
         </div>
       </div>
+<<<<<<< HEAD
 
       {/* Tooltip */}
       {tooltipInfo && (
@@ -313,6 +367,8 @@ export function MiniCalendar({
           )}
         </div>
       )}
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     </div>
   )
 }

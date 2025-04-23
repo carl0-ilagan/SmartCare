@@ -4,7 +4,11 @@ import { useState, useEffect, useRef } from "react"
 import { CheckCircle, X } from "lucide-react"
 import Link from "next/link"
 
+<<<<<<< HEAD
 export function WelcomeModal({ isOpen, onClose, userType = "patient", userName = "" }) {
+=======
+export function WelcomeModal({ isOpen, onClose, userType = "patient" }) {
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   const [startX, setStartX] = useState(null)
   const [offsetX, setOffsetX] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
@@ -128,9 +132,13 @@ export function WelcomeModal({ isOpen, onClose, userType = "patient", userName =
 
         <div className="mt-4 text-center">
           <p className="text-lg font-medium text-graphite">
+<<<<<<< HEAD
             {userType === "patient"
               ? `Welcome back, ${userName || "Patient"}!`
               : `Welcome back, Dr. ${userName || "Doctor"}!`}
+=======
+            {userType === "patient" ? "Welcome back, John Doe!" : "Welcome back, Dr. Sarah Johnson!"}
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
           </p>
           <p className="mt-2 text-drift-gray">
             {userType === "patient"

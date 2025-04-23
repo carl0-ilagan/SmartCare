@@ -34,12 +34,22 @@ export function AppointmentSummaryModal({ isOpen, onClose, appointment }) {
   if (!isOpen && !isVisible) return null
   if (!appointment) return null
 
+<<<<<<< HEAD
   // Mock summary data - in a real app, this would come from the appointment
   const summary = appointment.summary || {
     diagnosis: "Regular check-up completed",
     recommendations: "Continue current medications, maintain healthy diet and exercise",
     prescriptions: ["No new prescriptions"],
     followUp: "6 months",
+=======
+  // Mock summary data - in a real app, this would come from the backend
+  const summary = {
+    diagnosis: "Seasonal allergies with mild upper respiratory symptoms",
+    recommendations: "Over-the-counter antihistamines, nasal saline rinse, follow-up in 4 weeks if symptoms persist",
+    prescriptions: ["Loratadine 10mg once daily", "Fluticasone nasal spray 50mcg 1-2 sprays per nostril daily"],
+    followUp: "As needed, or in 4 weeks if symptoms persist",
+    notes: "Patient reported improvement with previous treatment. Continue to monitor for any changes in symptoms.",
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   }
 
   return (
@@ -73,11 +83,17 @@ export function AppointmentSummaryModal({ isOpen, onClose, appointment }) {
           <div className="rounded-lg bg-pale-stone p-4">
             <div className="flex items-center">
               <User className="mr-2 h-5 w-5 text-soft-amber" />
+<<<<<<< HEAD
               <h3 className="font-medium text-graphite">{appointment.doctorName || appointment.doctor}</h3>
             </div>
             <p className="ml-7 text-sm text-drift-gray">
               {appointment.specialty} • {appointment.type}
             </p>
+=======
+              <h3 className="font-medium text-graphite">{appointment.doctor}</h3>
+            </div>
+            <p className="ml-7 text-sm text-drift-gray">{appointment.specialty}</p>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -97,6 +113,7 @@ export function AppointmentSummaryModal({ isOpen, onClose, appointment }) {
             </div>
           </div>
 
+<<<<<<< HEAD
           <div className="space-y-3">
             <div className="rounded-md bg-blue-50 p-3">
               <p className="text-sm font-medium text-blue-800">Diagnosis</p>
@@ -111,12 +128,29 @@ export function AppointmentSummaryModal({ isOpen, onClose, appointment }) {
             <div className="rounded-md bg-amber-50 p-3">
               <p className="text-sm font-medium text-amber-800">Prescriptions</p>
               <ul className="mt-1 list-disc pl-5 text-sm text-amber-700">
+=======
+          <div className="space-y-3 rounded-md border border-pale-stone p-4">
+            <div>
+              <h4 className="font-medium text-graphite">Diagnosis</h4>
+              <p className="text-sm text-drift-gray">{summary.diagnosis}</p>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-graphite">Recommendations</h4>
+              <p className="text-sm text-drift-gray">{summary.recommendations}</p>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-graphite">Prescriptions</h4>
+              <ul className="ml-5 list-disc text-sm text-drift-gray">
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                 {summary.prescriptions.map((prescription, index) => (
                   <li key={index}>{prescription}</li>
                 ))}
               </ul>
             </div>
 
+<<<<<<< HEAD
             <div className="flex items-start">
               <FileText className="mr-2 h-5 w-5 text-soft-amber" />
               <div>
@@ -127,12 +161,35 @@ export function AppointmentSummaryModal({ isOpen, onClose, appointment }) {
           </div>
 
           <div className="flex justify-end pt-2">
+=======
+            <div>
+              <h4 className="font-medium text-graphite">Follow-up</h4>
+              <p className="text-sm text-drift-gray">{summary.followUp}</p>
+            </div>
+
+            {summary.notes && (
+              <div>
+                <h4 className="font-medium text-graphite">Additional Notes</h4>
+                <p className="text-sm text-drift-gray">{summary.notes}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-2">
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
             <button
               onClick={handleClose}
               className="rounded-md border border-earth-beige bg-white px-4 py-2 text-sm font-medium text-graphite transition-colors duration-200 hover:bg-pale-stone focus:outline-none focus:ring-2 focus:ring-earth-beige focus:ring-offset-2"
             >
               Close
             </button>
+<<<<<<< HEAD
+=======
+            <button className="rounded-md bg-soft-amber px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-soft-amber focus:ring-offset-2">
+              <FileText className="mr-1 h-4 w-4 inline" />
+              Download PDF
+            </button>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
           </div>
         </div>
       </div>

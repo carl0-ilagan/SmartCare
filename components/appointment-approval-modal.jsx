@@ -2,12 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { Check, X } from "lucide-react"
+<<<<<<< HEAD
 import { updateAppointmentStatus } from "@/lib/appointment-utils"
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
 export function AppointmentApprovalModal({ isOpen, onClose, appointment, onApprove }) {
   const [isVisible, setIsVisible] = useState(false)
   const [doctorNote, setDoctorNote] = useState("")
+<<<<<<< HEAD
   const [isSubmitting, setIsSubmitting] = useState(false)
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
   // Handle modal visibility with animation
   useEffect(() => {
@@ -25,14 +31,20 @@ export function AppointmentApprovalModal({ isOpen, onClose, appointment, onAppro
   useEffect(() => {
     if (isOpen) {
       setDoctorNote("")
+<<<<<<< HEAD
       setIsSubmitting(false)
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     }
   }, [isOpen])
 
   // Handle closing with animation
   const handleClose = () => {
+<<<<<<< HEAD
     if (isSubmitting) return
 
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     const backdrop = document.getElementById("approval-backdrop")
     const modalContent = document.getElementById("approval-content")
 
@@ -44,6 +56,7 @@ export function AppointmentApprovalModal({ isOpen, onClose, appointment, onAppro
     }, 280)
   }
 
+<<<<<<< HEAD
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -62,6 +75,11 @@ export function AppointmentApprovalModal({ isOpen, onClose, appointment, onAppro
       console.error("Error approving appointment:", error)
       setIsSubmitting(false)
     }
+=======
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    onApprove(appointment, doctorNote)
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   }
 
   if (!isOpen && !isVisible) return null
@@ -88,7 +106,10 @@ export function AppointmentApprovalModal({ isOpen, onClose, appointment, onAppro
           <button
             onClick={handleClose}
             className="rounded-full p-1 text-drift-gray hover:bg-pale-stone hover:text-soft-amber transition-colors duration-200"
+<<<<<<< HEAD
             disabled={isSubmitting}
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
           >
             <X className="h-5 w-5" />
             <span className="sr-only">Close</span>
@@ -104,11 +125,18 @@ export function AppointmentApprovalModal({ isOpen, onClose, appointment, onAppro
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-green-800">Appointment Details</h3>
                 <div className="mt-2 text-sm text-green-700">
+<<<<<<< HEAD
                   <p>Patient: {appointment.patientName || appointment.patient}</p>
                   <p>Date: {new Date(appointment.date).toLocaleDateString()}</p>
                   <p>Time: {appointment.time}</p>
                   <p>Type: {appointment.type}</p>
                   {appointment.notes && <p>Notes: {appointment.notes}</p>}
+=======
+                  <p>Patient: {appointment.patient}</p>
+                  <p>Date: {new Date(appointment.date).toLocaleDateString()}</p>
+                  <p>Time: {appointment.time}</p>
+                  <p>Type: {appointment.type}</p>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                 </div>
               </div>
             </div>
@@ -126,7 +154,10 @@ export function AppointmentApprovalModal({ isOpen, onClose, appointment, onAppro
                 onChange={(e) => setDoctorNote(e.target.value)}
                 placeholder="Any special instructions or information for the patient..."
                 className="mt-1 block w-full rounded-md border border-earth-beige p-2 text-sm text-graphite placeholder:text-drift-gray/60 focus:border-soft-amber focus:outline-none focus:ring-1 focus:ring-soft-amber"
+<<<<<<< HEAD
                 disabled={isSubmitting}
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
               />
             </div>
 
@@ -135,16 +166,24 @@ export function AppointmentApprovalModal({ isOpen, onClose, appointment, onAppro
                 type="button"
                 onClick={handleClose}
                 className="rounded-md border border-earth-beige bg-white px-4 py-2 text-sm font-medium text-graphite transition-colors duration-200 hover:bg-pale-stone focus:outline-none focus:ring-2 focus:ring-earth-beige focus:ring-offset-2"
+<<<<<<< HEAD
                 disabled={isSubmitting}
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+<<<<<<< HEAD
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Approving..." : "Approve Appointment"}
+=======
+              >
+                Approve Appointment
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
               </button>
             </div>
           </form>

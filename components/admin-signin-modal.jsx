@@ -1,11 +1,16 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+<<<<<<< HEAD
 import { X, AlertCircle, Mail, Lock, Eye, EyeOff } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth"
 import { doc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+=======
+import { X, AlertCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
 export function AdminSigninModal({ isOpen, onClose }) {
   const router = useRouter()
@@ -14,6 +19,7 @@ export function AdminSigninModal({ isOpen, onClose }) {
   const [isDragging, setIsDragging] = useState(false)
   const modalRef = useRef(null)
 
+<<<<<<< HEAD
   // Form state
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -21,6 +27,8 @@ export function AdminSigninModal({ isOpen, onClose }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   // Handle escape key press
   useEffect(() => {
     const handleEscape = (e) => {
@@ -50,10 +58,13 @@ export function AdminSigninModal({ isOpen, onClose }) {
   useEffect(() => {
     if (!isOpen) {
       setOffsetX(0)
+<<<<<<< HEAD
       // Reset form state
       setEmail("")
       setPassword("")
       setError("")
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     }
   }, [isOpen])
 
@@ -101,6 +112,7 @@ export function AdminSigninModal({ isOpen, onClose }) {
     setStartX(null)
   }
 
+<<<<<<< HEAD
   const handleAdminLogin = async (e) => {
     e.preventDefault()
     setError("")
@@ -139,6 +151,17 @@ export function AdminSigninModal({ isOpen, onClose }) {
     } finally {
       setIsLoading(false)
     }
+=======
+  const handleContinue = () => {
+    router.push("/admin/dashboard")
+    onClose()
+  }
+
+  const handleLogout = () => {
+    // In a real app, this would call an API to log the user out
+    router.push("/login")
+    onClose()
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   }
 
   if (!isOpen) return null
@@ -165,7 +188,11 @@ export function AdminSigninModal({ isOpen, onClose }) {
         onMouseLeave={handleMouseUp}
       >
         <div className="flex items-center justify-between">
+<<<<<<< HEAD
           <h2 className="text-xl font-semibold text-graphite">Admin Sign In</h2>
+=======
+          <h2 className="text-xl font-semibold text-graphite">Already Signed In</h2>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
           <button
             onClick={onClose}
             className="rounded-full p-1 text-drift-gray hover:bg-pale-stone hover:text-soft-amber"
@@ -182,6 +209,7 @@ export function AdminSigninModal({ isOpen, onClose }) {
         </div>
 
         <div className="mt-4 text-center">
+<<<<<<< HEAD
           <p className="text-lg font-medium text-graphite">Administrator Access Required</p>
           <p className="mt-2 text-drift-gray">Please enter your admin credentials to continue</p>
         </div>
@@ -264,6 +292,30 @@ export function AdminSigninModal({ isOpen, onClose }) {
             </button>
           </div>
         </form>
+=======
+          <p className="text-lg font-medium text-graphite">You are already signed in as an administrator</p>
+          <p className="mt-2 text-drift-gray">Would you like to continue to the admin dashboard or sign out?</p>
+        </div>
+
+        <div className="mt-2 text-center text-xs text-drift-gray italic">
+          <p>Swipe left or right to dismiss</p>
+        </div>
+
+        <div className="mt-6 flex justify-center space-x-4">
+          <button
+            onClick={handleLogout}
+            className="rounded-md border border-earth-beige bg-white px-4 py-2 text-sm font-medium text-graphite transition-colors hover:bg-pale-stone focus:outline-none focus:ring-2 focus:ring-earth-beige focus:ring-offset-2"
+          >
+            Sign Out
+          </button>
+          <button
+            onClick={handleContinue}
+            className="rounded-md bg-soft-amber px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-soft-amber/90 focus:outline-none focus:ring-2 focus:ring-soft-amber focus:ring-offset-2"
+          >
+            Continue
+          </button>
+        </div>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
       </div>
     </>
   )

@@ -19,7 +19,10 @@ import {
 import { useMobile } from "@/hooks/use-mobile"
 import { LogoutConfirmation } from "@/components/logout-confirmation"
 import { NotificationDropdown } from "@/components/notification-dropdown"
+<<<<<<< HEAD
 import { useAuth } from "@/contexts/auth-context"
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
 export function DoctorTopNav() {
   const pathname = usePathname()
@@ -29,7 +32,10 @@ export function DoctorTopNav() {
   const [showLogoutConfirmation, setShowLogoutConfirmation] = useState(false)
   const notificationRef = useRef(null)
   const userMenuRef = useRef(null)
+<<<<<<< HEAD
   const { user, logout } = useAuth()
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -63,6 +69,7 @@ export function DoctorTopNav() {
     { href: "/doctor/settings", label: "Settings", icon: Settings },
   ]
 
+<<<<<<< HEAD
   const handleLogout = async () => {
     try {
       await logout()
@@ -71,6 +78,8 @@ export function DoctorTopNav() {
     }
   }
 
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   return (
     <>
       <header className="fixed left-0 right-0 top-0 z-30 border-b border-pale-stone bg-white">
@@ -111,8 +120,11 @@ export function DoctorTopNav() {
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="relative rounded-full p-1 text-drift-gray hover:bg-pale-stone hover:text-soft-amber"
+<<<<<<< HEAD
                 aria-haspopup="true"
                 aria-expanded={showNotifications}
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
               >
                 <Bell className="h-6 w-6" />
                 <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-soft-amber text-xs font-medium text-white">
@@ -121,6 +133,7 @@ export function DoctorTopNav() {
                 <span className="sr-only">Notifications</span>
               </button>
 
+<<<<<<< HEAD
               <div 
                 className={`absolute right-0 mt-2 w-80 rounded-md border border-pale-stone bg-white dropdown-shadow overflow-hidden ${
                   showNotifications ? "dropdown-enter" : "dropdown-exit hidden"
@@ -128,12 +141,16 @@ export function DoctorTopNav() {
               >
                 {showNotifications && <NotificationDropdown />}
               </div>
+=======
+              {showNotifications && <NotificationDropdown />}
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
             </div>
 
             <div className="relative user-menu-container" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center rounded-full text-drift-gray hover:text-soft-amber"
+<<<<<<< HEAD
                 aria-haspopup="true"
                 aria-expanded={showUserMenu}
               >
@@ -160,12 +177,30 @@ export function DoctorTopNav() {
                     <div className="border-b border-pale-stone pb-2 mb-2">
                       <p className="px-3 py-1 text-sm font-medium text-graphite">{user?.displayName || "Dr. User"}</p>
                       <p className="px-3 py-1 text-xs text-drift-gray">{user?.email || "doctor@example.com"}</p>
+=======
+              >
+                <div className="relative h-8 w-8 overflow-hidden rounded-full bg-pale-stone">
+                  <User className="h-full w-full p-1" />
+                </div>
+              </button>
+
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-md border border-pale-stone bg-white shadow-lg">
+                  <div className="p-2">
+                    <div className="border-b border-pale-stone pb-2 mb-2">
+                      <p className="px-3 py-1 text-sm font-medium text-graphite">Dr. Michael Chen</p>
+                      <p className="px-3 py-1 text-xs text-drift-gray">doctor@example.com</p>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                     </div>
                     {userMenuLinks.map((link) => (
                       <Link
                         key={link.href}
                         href={link.href}
+<<<<<<< HEAD
                         className="dropdown-item flex items-center rounded-md px-3 py-2 text-sm text-drift-gray hover:text-soft-amber"
+=======
+                        className="flex items-center rounded-md px-3 py-2 text-sm text-drift-gray hover:bg-pale-stone hover:text-soft-amber"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                         onClick={() => setShowUserMenu(false)}
                       >
                         <link.icon className="mr-2 h-4 w-4" />
@@ -177,24 +212,37 @@ export function DoctorTopNav() {
                         setShowUserMenu(false)
                         setShowLogoutConfirmation(true)
                       }}
+<<<<<<< HEAD
                       className="dropdown-item flex w-full items-center rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+=======
+                      className="flex w-full items-center rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                     >
                       <LogOut className="mr-2 h-4 w-4" />
                       Logout
                     </button>
                   </div>
+<<<<<<< HEAD
                 )}
               </div>
+=======
+                </div>
+              )}
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
             </div>
           </div>
         </div>
       </header>
 
+<<<<<<< HEAD
       <LogoutConfirmation
         isOpen={showLogoutConfirmation}
         onClose={() => setShowLogoutConfirmation(false)}
         onConfirm={handleLogout}
       />
+=======
+      <LogoutConfirmation isOpen={showLogoutConfirmation} onClose={() => setShowLogoutConfirmation(false)} />
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     </>
   )
 }

@@ -19,11 +19,45 @@ import {
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { WelcomeSidebar } from "@/components/welcome-sidebar"
+<<<<<<< HEAD
+=======
+import { auth } from "@/lib/firebase"
+import { useRouter } from "next/navigation"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
 export default function InformationPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [activeSection, setActiveSection] = useState("about")
   const searchParams = useSearchParams()
+<<<<<<< HEAD
+=======
+  const router = useRouter()
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        try {
+          // Get user data to determine user type
+          const response = await fetch(`/api/users/${user.uid}`)
+          const userData = await response.json()
+
+          // Redirect based on user type
+          if (userData.userType === "patient") {
+            router.push("/dashboard")
+          } else if (userData.userType === "doctor") {
+            router.push("/doctor/dashboard")
+          } else if (userData.userType === "admin") {
+            router.push("/admin/dashboard")
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error)
+        }
+      }
+    })
+
+    return () => unsubscribe()
+  }, [router])
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
   useEffect(() => {
     const section = searchParams.get("section")

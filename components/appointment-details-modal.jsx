@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { Calendar, Clock, MapPin, User, X } from "lucide-react"
+<<<<<<< HEAD
 import { useAuth } from "@/contexts/auth-context"
 import { markAppointmentNotificationsAsRead } from "@/lib/appointment-utils"
 
@@ -22,24 +23,35 @@ const StatusBadge = ({ status }) => {
 
 export function AppointmentDetailsModal({ isOpen, onClose, appointment, onCancel, onViewSummary }) {
   const { user, userRole } = useAuth()
+=======
+
+export function AppointmentDetailsModal({ isOpen, onClose, appointment, onCancel, onViewSummary }) {
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   const [isVisible, setIsVisible] = useState(false)
 
   // Handle modal visibility with animation
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true)
+<<<<<<< HEAD
 
       // Mark notifications as read when opening details
       if (appointment && user) {
         markAppointmentNotificationsAsRead(appointment.id, userRole)
       }
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     } else {
       const timer = setTimeout(() => {
         setIsVisible(false)
       }, 300)
       return () => clearTimeout(timer)
     }
+<<<<<<< HEAD
   }, [isOpen, appointment, user, userRole])
+=======
+  }, [isOpen])
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
   // Handle closing with animation
   const handleClose = () => {
@@ -57,6 +69,7 @@ export function AppointmentDetailsModal({ isOpen, onClose, appointment, onCancel
   if (!isOpen && !isVisible) return null
   if (!appointment) return null
 
+<<<<<<< HEAD
   const isUpcoming = appointment.status === "approved" || appointment.status === "pending"
   const isCompleted = appointment.status === "completed"
   const isPending = appointment.status === "pending"
@@ -71,6 +84,10 @@ export function AppointmentDetailsModal({ isOpen, onClose, appointment, onCancel
 
   // Get the specialty if viewing as patient
   const specialty = isPatient ? appointment.specialty || "" : ""
+=======
+  const isUpcoming = appointment.status === "upcoming"
+  const isCompleted = appointment.status === "completed"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
   return (
     <>
@@ -89,11 +106,15 @@ export function AppointmentDetailsModal({ isOpen, onClose, appointment, onCancel
         style={{ animation: "scaleIn 0.3s ease-in-out" }}
       >
         <div className="flex items-center justify-between">
+<<<<<<< HEAD
           {/* Add the StatusBadge to the appointment details display */}
           <div className="flex items-center mb-2">
             <h3 className="text-xl font-semibold text-graphite mr-2">Appointment Details</h3>
             {appointment && <StatusBadge status={appointment.status} />}
           </div>
+=======
+          <h2 className="text-xl font-semibold text-graphite">Appointment Details</h2>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
           <button
             onClick={handleClose}
             className="rounded-full p-1 text-drift-gray hover:bg-pale-stone hover:text-soft-amber transition-colors duration-200"
@@ -107,6 +128,7 @@ export function AppointmentDetailsModal({ isOpen, onClose, appointment, onCancel
           <div className="rounded-lg bg-pale-stone p-4">
             <div className="flex items-center">
               <User className="mr-2 h-5 w-5 text-soft-amber" />
+<<<<<<< HEAD
               <h3 className="font-medium text-graphite">{otherPartyName}</h3>
             </div>
             <p className="ml-7 text-sm text-drift-gray">
@@ -137,6 +159,11 @@ export function AppointmentDetailsModal({ isOpen, onClose, appointment, onCancel
                 </span>
               )}
             </div> */}
+=======
+              <h3 className="font-medium text-graphite">{appointment.patient}</h3>
+            </div>
+            <p className="ml-7 text-sm text-drift-gray">{appointment.type}</p>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -171,6 +198,7 @@ export function AppointmentDetailsModal({ isOpen, onClose, appointment, onCancel
             </div>
           )}
 
+<<<<<<< HEAD
           {/* Doctor's note (if any and appointment is approved) */}
           {appointment.note && (isApproved || isCompleted) && (
             <div className="rounded-md bg-green-50 p-3">
@@ -187,6 +215,8 @@ export function AppointmentDetailsModal({ isOpen, onClose, appointment, onCancel
             </div>
           )}
 
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
           <div className="flex justify-end space-x-2 pt-2">
             <button
               onClick={handleClose}

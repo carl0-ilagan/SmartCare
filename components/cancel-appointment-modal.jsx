@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+<<<<<<< HEAD
 import { AlertTriangle, X } from "lucide-react"
 import { updateAppointmentStatus } from "@/lib/appointment-utils"
 
@@ -8,6 +9,12 @@ export function CancelAppointmentModal({ isOpen, onClose, appointment, onConfirm
   const [isVisible, setIsVisible] = useState(false)
   const [reason, setReason] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+=======
+import { X } from "lucide-react"
+
+export function CancelAppointmentModal({ isOpen, onClose, appointment, onConfirm }) {
+  const [isVisible, setIsVisible] = useState(false)
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
   // Handle modal visibility with animation
   useEffect(() => {
@@ -21,6 +28,7 @@ export function CancelAppointmentModal({ isOpen, onClose, appointment, onConfirm
     }
   }, [isOpen])
 
+<<<<<<< HEAD
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -33,6 +41,10 @@ export function CancelAppointmentModal({ isOpen, onClose, appointment, onConfirm
   const handleClose = () => {
     if (isSubmitting) return
 
+=======
+  // Handle closing with animation
+  const handleClose = () => {
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     const backdrop = document.getElementById("cancel-backdrop")
     const modalContent = document.getElementById("cancel-content")
 
@@ -44,6 +56,7 @@ export function CancelAppointmentModal({ isOpen, onClose, appointment, onConfirm
     }, 280)
   }
 
+<<<<<<< HEAD
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -64,6 +77,8 @@ export function CancelAppointmentModal({ isOpen, onClose, appointment, onConfirm
     }
   }
 
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   if (!isOpen && !isVisible) return null
   if (!appointment) return null
 
@@ -88,7 +103,10 @@ export function CancelAppointmentModal({ isOpen, onClose, appointment, onConfirm
           <button
             onClick={handleClose}
             className="rounded-full p-1 text-drift-gray hover:bg-pale-stone hover:text-soft-amber transition-colors duration-200"
+<<<<<<< HEAD
             disabled={isSubmitting}
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
           >
             <X className="h-5 w-5" />
             <span className="sr-only">Close</span>
@@ -96,6 +114,7 @@ export function CancelAppointmentModal({ isOpen, onClose, appointment, onConfirm
         </div>
 
         <div className="mt-4">
+<<<<<<< HEAD
           <div className="rounded-lg bg-red-50 p-4">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -148,6 +167,40 @@ export function CancelAppointmentModal({ isOpen, onClose, appointment, onConfirm
               </button>
             </div>
           </form>
+=======
+          <p className="text-drift-gray">
+            Are you sure you want to cancel the appointment with{" "}
+            <span className="font-medium text-graphite">{appointment.patient}</span> on{" "}
+            <span className="font-medium text-graphite">
+              {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
+            </span>
+            ?
+          </p>
+
+          <div className="mt-2 rounded-md bg-pale-stone p-3">
+            <p className="text-sm text-drift-gray">
+              <span className="font-medium">Note:</span> Please notify the patient about this cancellation. They will
+              receive an automatic notification, but a personal follow-up is recommended.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end space-x-2">
+          <button
+            onClick={handleClose}
+            className="rounded-md border border-earth-beige bg-white px-4 py-2 text-sm font-medium text-graphite transition-colors duration-200 hover:bg-pale-stone focus:outline-none focus:ring-2 focus:ring-earth-beige focus:ring-offset-2"
+          >
+            Keep Appointment
+          </button>
+          <button
+            onClick={() => {
+              onConfirm(appointment)
+            }}
+            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+          >
+            Cancel Appointment
+          </button>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
         </div>
       </div>
     </>

@@ -1,5 +1,6 @@
 "use client"
 
+<<<<<<< HEAD
 import { useState, useEffect, useRef } from "react"
 import { Camera, Mail, Phone, User } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
@@ -64,11 +65,33 @@ export default function DoctorProfilePage() {
     fetchUserProfile()
   }, [user])
 
+=======
+import { useState } from "react"
+import { Camera, Mail, Phone, User } from "lucide-react"
+
+export default function DoctorProfilePage() {
+  const [isEditing, setIsEditing] = useState(false)
+  const [profile, setProfile] = useState({
+    name: "Dr. Sarah Johnson",
+    email: "doctor@example.com",
+    phone: "+1 (555) 987-6543",
+    specialty: "Cardiologist",
+    licenseNumber: "MD12345678",
+    education: "Harvard Medical School",
+    experience: "15+ years",
+    languages: "English, Spanish",
+    bio: "Dr. Johnson is a board-certified cardiologist with over 15 years of experience in treating heart conditions. She specializes in preventive cardiology and heart failure management.",
+    officeAddress: "456 Medical Center Blvd, Suite 200, Anytown, CA 12345",
+    officeHours: "Monday-Friday: 9am-5pm",
+  })
+
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   const handleChange = (e) => {
     const { name, value } = e.target
     setProfile((prev) => ({ ...prev, [name]: value }))
   }
 
+<<<<<<< HEAD
   const handlePhotoClick = () => {
     fileInputRef.current?.click()
   }
@@ -120,10 +143,17 @@ export default function DoctorProfilePage() {
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-soft-amber"></div>
       </div>
     )
+=======
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    setIsEditing(false)
+    // In a real app, this would save to the backend
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   }
 
   return (
     <div className="space-y-6">
+<<<<<<< HEAD
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <span className="block sm:inline">{error}</span>
@@ -156,6 +186,16 @@ export default function DoctorProfilePage() {
         <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10"></div>
         <div className="absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-white/10"></div>
         <div className="absolute -bottom-32 right-16 h-48 w-48 rounded-full bg-white/5"></div>
+=======
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-graphite md:text-3xl">My Profile</h1>
+        <button
+          onClick={() => setIsEditing(!isEditing)}
+          className="inline-flex items-center rounded-md bg-soft-amber px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-soft-amber focus:ring-offset-2"
+        >
+          {isEditing ? "Cancel" : "Edit Profile"}
+        </button>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
@@ -163,6 +203,7 @@ export default function DoctorProfilePage() {
         <div className="rounded-lg border border-pale-stone bg-white p-6 shadow-sm">
           <div className="flex flex-col items-center">
             <div className="relative mb-4">
+<<<<<<< HEAD
               <div className="h-32 w-32 overflow-hidden rounded-full bg-pale-stone border-4 border-white shadow-md">
                 {profile.photoURL ? (
                   <img
@@ -204,29 +245,64 @@ export default function DoctorProfilePage() {
             <div className="mt-2 flex items-center space-x-2">
               <Phone className="h-4 w-4 text-soft-amber" />
               <span className="text-sm text-drift-gray">{profile.phone || "Not provided"}</span>
+=======
+              <div className="h-32 w-32 overflow-hidden rounded-full bg-pale-stone">
+                <User className="h-full w-full p-6 text-drift-gray" />
+              </div>
+              {isEditing && (
+                <button className="absolute bottom-0 right-0 rounded-full bg-soft-amber p-2 text-white shadow-sm hover:bg-amber-600">
+                  <Camera className="h-5 w-5" />
+                  <span className="sr-only">Change photo</span>
+                </button>
+              )}
+            </div>
+            <h2 className="text-xl font-semibold text-graphite">{profile.name}</h2>
+            <p className="text-soft-amber">{profile.specialty}</p>
+            <div className="mt-4 flex items-center space-x-2">
+              <Mail className="h-4 w-4 text-drift-gray" />
+              <span className="text-sm text-drift-gray">{profile.email}</span>
+            </div>
+            <div className="mt-2 flex items-center space-x-2">
+              <Phone className="h-4 w-4 text-drift-gray" />
+              <span className="text-sm text-drift-gray">{profile.phone}</span>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
             </div>
           </div>
         </div>
 
         {/* Profile Information */}
         <div className="col-span-2 rounded-lg border border-pale-stone bg-white p-6 shadow-sm">
+<<<<<<< HEAD
           <h2 className="mb-4 text-xl font-semibold text-graphite flex items-center">
             <span>Professional Information</span>
             {isEditing && <span className="ml-2 text-sm font-normal text-soft-amber">(Editing)</span>}
           </h2>
+=======
+          <h2 className="mb-4 text-xl font-semibold text-graphite">Professional Information</h2>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
           {isEditing ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
+<<<<<<< HEAD
                   <label htmlFor="displayName" className="block text-sm font-medium text-graphite">
+=======
+                  <label htmlFor="name" className="block text-sm font-medium text-graphite">
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                     Full Name
                   </label>
                   <input
                     type="text"
+<<<<<<< HEAD
                     id="displayName"
                     name="displayName"
                     value={profile.displayName}
+=======
+                    id="name"
+                    name="name"
+                    value={profile.name}
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                     onChange={handleChange}
                     className="mt-1 w-full rounded-md border border-earth-beige p-2 focus:border-soft-amber focus:outline-none focus:ring-1 focus:ring-soft-amber"
                   />
@@ -241,8 +317,12 @@ export default function DoctorProfilePage() {
                     name="email"
                     value={profile.email}
                     onChange={handleChange}
+<<<<<<< HEAD
                     disabled
                     className="mt-1 w-full rounded-md border border-earth-beige p-2 bg-gray-50 cursor-not-allowed"
+=======
+                    className="mt-1 w-full rounded-md border border-earth-beige p-2 focus:border-soft-amber focus:outline-none focus:ring-1 focus:ring-soft-amber"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                   />
                 </div>
                 <div>
@@ -367,18 +447,26 @@ export default function DoctorProfilePage() {
                 />
               </div>
 
+<<<<<<< HEAD
               <div className="flex justify-end space-x-2 pt-2 border-t border-earth-beige">
+=======
+              <div className="flex justify-end space-x-2">
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
                   className="rounded-md border border-earth-beige bg-white px-4 py-2 text-sm font-medium text-graphite shadow-sm transition-colors hover:bg-pale-stone focus:outline-none focus:ring-2 focus:ring-earth-beige focus:ring-offset-2"
+<<<<<<< HEAD
                   disabled={loading}
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="rounded-md bg-soft-amber px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-soft-amber focus:ring-offset-2"
+<<<<<<< HEAD
                   disabled={loading}
                 >
                   {loading ? (
@@ -389,10 +477,15 @@ export default function DoctorProfilePage() {
                   ) : (
                     "Save Changes"
                   )}
+=======
+                >
+                  Save Changes
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                 </button>
               </div>
             </form>
           ) : (
+<<<<<<< HEAD
             <div className="space-y-6">
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="rounded-lg bg-pale-stone/30 p-4">
@@ -462,11 +555,63 @@ export default function DoctorProfilePage() {
                     <p className="text-graphite">{profile.officeHours || "Not provided"}</p>
                   </div>
                 </div>
+=======
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <h3 className="text-sm font-medium text-drift-gray">Full Name</h3>
+                  <p className="text-graphite">{profile.name}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-drift-gray">Email</h3>
+                  <p className="text-graphite">{profile.email}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-drift-gray">Phone</h3>
+                  <p className="text-graphite">{profile.phone}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-drift-gray">Specialty</h3>
+                  <p className="text-graphite">{profile.specialty}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-drift-gray">License Number</h3>
+                  <p className="text-graphite">{profile.licenseNumber}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-drift-gray">Education</h3>
+                  <p className="text-graphite">{profile.education}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-drift-gray">Experience</h3>
+                  <p className="text-graphite">{profile.experience}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-drift-gray">Languages</h3>
+                  <p className="text-graphite">{profile.languages}</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-drift-gray">Professional Bio</h3>
+                <p className="text-graphite">{profile.bio}</p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-drift-gray">Office Address</h3>
+                <p className="text-graphite">{profile.officeAddress}</p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-drift-gray">Office Hours</h3>
+                <p className="text-graphite">{profile.officeHours}</p>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
               </div>
             </div>
           )}
         </div>
       </div>
+<<<<<<< HEAD
 
       <SaveConfirmationModal
         isOpen={showSaveModal}
@@ -474,6 +619,8 @@ export default function DoctorProfilePage() {
         title="Profile Updated"
         message="Your profile information has been successfully updated."
       />
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     </div>
   )
 }

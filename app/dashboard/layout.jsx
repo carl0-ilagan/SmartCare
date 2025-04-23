@@ -3,10 +3,15 @@
 import { useState, useEffect } from "react"
 import { DashboardNav } from "@/components/dashboard-nav"
 import { MobileNav } from "@/components/mobile-nav"
+<<<<<<< HEAD
 import { ProtectedRoute } from "@/components/protected-route"
 import { useMobile } from "@/hooks/use-mobile"
 import { usePathname } from "next/navigation"
 import CallNotification from "@/components/call-notification"
+=======
+import { useMobile } from "@/hooks/use-mobile"
+import { usePathname } from "next/navigation"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
 export default function DashboardLayout({ children }) {
   const isMobile = useMobile()
@@ -36,6 +41,7 @@ export default function DashboardLayout({ children }) {
 
   // Don't show navigation on messages page for full screen experience
   if (isMessagesPage) {
+<<<<<<< HEAD
     return <ProtectedRoute requiredRole="patient">{children}</ProtectedRoute>
   }
 
@@ -50,5 +56,18 @@ export default function DashboardLayout({ children }) {
         <CallNotification />
       </div>
     </ProtectedRoute>
+=======
+    return <>{children}</>
+  }
+
+  return (
+    <div className="min-h-screen bg-pale-stone">
+      <DashboardNav />
+      <main className="container mx-auto px-4 pb-20 pt-24 md:px-6 md:pb-12">
+        <div className={`${isPageTransitioning ? "opacity-0" : "page-transition-enter"}`}>{content}</div>
+      </main>
+      {isMobile && <MobileNav />}
+    </div>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   )
 }

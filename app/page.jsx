@@ -1,6 +1,10 @@
 "use client"
 
+<<<<<<< HEAD
 import { useState } from "react"
+=======
+import { useState, useEffect } from "react"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 import Link from "next/link"
 import { ArrowRight, Calendar, CheckCircle, Clock, MessageSquare, Stethoscope } from "lucide-react"
 import { Navbar } from "@/components/navbar"
@@ -8,9 +12,43 @@ import { Footer } from "@/components/footer"
 import { TestimonialCard } from "@/components/testimonial-card"
 import { HealthTipsCarousel } from "@/components/health-tips-carousel"
 import { WelcomeSidebar } from "@/components/welcome-sidebar"
+<<<<<<< HEAD
 
 export default function HomePage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+=======
+import { auth } from "@/lib/firebase"
+import { useRouter } from "next/navigation"
+
+export default function HomePage() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const router = useRouter()
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        try {
+          // Get user data to determine user type
+          const response = await fetch(`/api/users/${user.uid}`)
+          const userData = await response.json()
+
+          // Redirect based on user type
+          if (userData.userType === "patient") {
+            router.push("/dashboard")
+          } else if (userData.userType === "doctor") {
+            router.push("/doctor/dashboard")
+          } else if (userData.userType === "admin") {
+            router.push("/admin/dashboard")
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error)
+        }
+      }
+    })
+
+    return () => unsubscribe()
+  }, [router])
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
   const features = [
     {
@@ -35,27 +73,46 @@ export default function HomePage() {
     },
   ]
 
+<<<<<<< HEAD
+=======
+  // Update the testimonials array with the correct image URLs
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   const testimonials = [
     {
       name: "Sarah Johnson",
       role: "Patient",
       testimonial:
         "Smart Care has transformed how I manage my healthcare. The virtual consultations are so convenient, and the doctors are incredibly attentive.",
+<<<<<<< HEAD
       avatarSrc: "/placeholder.svg?height=100&width=100",
+=======
+      avatarSrc:
+        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2488&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     },
     {
       name: "Dr. Michael Chen",
       role: "Cardiologist",
       testimonial:
         "As a healthcare provider, Smart Care has allowed me to connect with patients more efficiently and provide care to those who might otherwise struggle to access it.",
+<<<<<<< HEAD
       avatarSrc: "/placeholder.svg?height=100&width=100",
+=======
+      avatarSrc:
+        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     },
     {
       name: "Emily Rodriguez",
       role: "Patient",
       testimonial:
         "The ease of scheduling appointments and getting prescriptions refilled has made managing my chronic condition so much easier. Highly recommend!",
+<<<<<<< HEAD
       avatarSrc: "/placeholder.svg?height=100&width=100",
+=======
+      avatarSrc:
+        "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=2961&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     },
   ]
 
@@ -96,7 +153,11 @@ export default function HomePage() {
             </div>
             <div className="flex items-center justify-center">
               <img
+<<<<<<< HEAD
                 src="/placeholder.svg?height=400&width=600"
+=======
+                src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=2940&auto=format&fit=crop"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                 alt="Smart Care Platform"
                 className="aspect-video overflow-hidden rounded-xl object-cover object-center"
                 width={600}
@@ -242,7 +303,11 @@ export default function HomePage() {
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
             <div className="flex items-center justify-center">
               <img
+<<<<<<< HEAD
                 src="/placeholder.svg?height=400&width=600"
+=======
+                src="https://images.unsplash.com/photo-1584982751601-97dcc096659c?q=80&w=2942&auto=format&fit=crop"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                 alt="Doctor using Smart Care"
                 className="aspect-video overflow-hidden rounded-xl object-cover object-center"
                 width={600}

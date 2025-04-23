@@ -1,5 +1,6 @@
 "use client"
 
+<<<<<<< HEAD
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Mic, MicOff, Phone, User, MessageSquare, Volume2, VolumeX, X } from "lucide-react"
@@ -18,11 +19,19 @@ import {
 import { db } from "@/lib/firebase"
 import { addCallStatusMessage } from "@/lib/message-utils"
 import CallNotification from "@/components/call-notification"
+=======
+import { useState, useEffect } from "react"
+import { useRouter, useParams } from "next/navigation"
+import { Mic, MicOff, Phone, User, MessageSquare, Volume2, VolumeX, X } from "lucide-react"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
 export default function VoiceCallPage() {
   const router = useRouter()
   const params = useParams()
+<<<<<<< HEAD
   const { user } = useAuth()
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   const [isMuted, setIsMuted] = useState(false)
   const [isSpeakerOn, setIsSpeakerOn] = useState(true)
   const [callTime, setCallTime] = useState(0)
@@ -30,6 +39,7 @@ export default function VoiceCallPage() {
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState([])
   const [doctorInfo, setDoctorInfo] = useState(null)
+<<<<<<< HEAD
   const [callStatus, setCallStatus] = useState("connecting") // connecting, connected, ended
   const [callId, setCallId] = useState(null)
   const [isCallAccepted, setIsCallAccepted] = useState(false)
@@ -386,6 +396,46 @@ export default function VoiceCallPage() {
       setCallTime((prevTime) => prevTime + 1)
     }, 1000)
   }
+=======
+
+  // Mock doctor data based on ID
+  useEffect(() => {
+    // In a real app, this would fetch the doctor info from an API
+    const mockDoctors = {
+      1: {
+        id: 1,
+        name: "Dr. Sarah Johnson",
+        specialty: "Cardiologist",
+        avatar: null,
+      },
+      2: {
+        id: 2,
+        name: "Dr. Michael Chen",
+        specialty: "Dermatologist",
+        avatar: null,
+      },
+      3: {
+        id: 3,
+        name: "Dr. Emily Rodriguez",
+        specialty: "Neurologist",
+        avatar: null,
+      },
+    }
+
+    if (params.id && mockDoctors[params.id]) {
+      setDoctorInfo(mockDoctors[params.id])
+    }
+  }, [params.id])
+
+  // Call timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCallTime((prevTime) => prevTime + 1)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 
   // Format call time
   const formatCallTime = () => {
@@ -398,6 +448,7 @@ export default function VoiceCallPage() {
   const handleSendMessage = (e) => {
     e.preventDefault()
 
+<<<<<<< HEAD
     if (!message.trim() || !callId) return
 
     // Add message to local state
@@ -416,10 +467,28 @@ export default function VoiceCallPage() {
         messages: [...messages, newMessage],
       }).catch(console.error)
     }
+=======
+    if (!message.trim()) return
+
+    setMessages([...messages, { sender: "patient", content: message }])
+    setMessage("")
+
+    // Mock doctor response after a delay
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "doctor",
+          content: "I understand. Let me explain that in more detail.",
+        },
+      ])
+    }, 2000)
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
   }
 
   // Handle ending the call
   const handleEndCall = () => {
+<<<<<<< HEAD
     endCall()
     router.push("/dashboard/messages")
   }
@@ -531,6 +600,13 @@ export default function VoiceCallPage() {
       {/* Remote audio */}
       <audio ref={audioRef} autoPlay />
 
+=======
+    router.push("/dashboard/messages")
+  }
+
+  return (
+    <div className="h-screen w-full bg-graphite text-white">
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
       {/* Main call area */}
       <div className="relative h-full w-full">
         {/* Doctor's profile */}
@@ -538,6 +614,7 @@ export default function VoiceCallPage() {
           {doctorInfo && (
             <div className="flex flex-col items-center justify-center text-center">
               <div className="mb-6 h-32 w-32 overflow-hidden rounded-full bg-pale-stone">
+<<<<<<< HEAD
                 {doctorInfo.photoURL ? (
                   <img
                     src={doctorInfo.photoURL || "/placeholder.svg"}
@@ -552,10 +629,19 @@ export default function VoiceCallPage() {
               <p className="text-soft-amber">{doctorInfo.specialty}</p>
               <div className="mt-4 text-lg">
                 <p>{callStatus === "connecting" ? "Calling..." : "Voice Call"}</p>
+=======
+                <User className="h-full w-full p-6 text-drift-gray" />
+              </div>
+              <h2 className="text-2xl font-bold">{doctorInfo.name}</h2>
+              <p className="text-soft-amber">{doctorInfo.specialty}</p>
+              <div className="mt-4 text-lg">
+                <p>Voice Call</p>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                 <p className="mt-2">{formatCallTime()}</p>
               </div>
 
               {/* Audio visualization (simulated) */}
+<<<<<<< HEAD
               {callStatus === "connected" && (
                 <div className="mt-8 flex h-12 w-64 items-center justify-center space-x-1">
                   {Array.from({ length: 20 }).map((_, i) => {
@@ -578,6 +664,14 @@ export default function VoiceCallPage() {
                   <p className="mt-2 text-sm">Redirecting to messages...</p>
                 </div>
               )}
+=======
+              <div className="mt-8 flex h-12 w-64 items-center justify-center space-x-1">
+                {Array.from({ length: 20 }).map((_, i) => {
+                  const height = Math.sin(i / 3 + callTime / 2) * 20 + 30
+                  return <div key={i} className="w-1 bg-soft-amber" style={{ height: `${height}%` }}></div>
+                })}
+              </div>
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
             </div>
           )}
         </div>
@@ -593,9 +687,14 @@ export default function VoiceCallPage() {
             {/* Call controls */}
             <div className="flex items-center space-x-4">
               <button
+<<<<<<< HEAD
                 onClick={toggleMute}
                 className={`rounded-full p-3 ${isMuted ? "bg-red-500" : "bg-white/20"}`}
                 disabled={callStatus !== "connected"}
+=======
+                onClick={() => setIsMuted(!isMuted)}
+                className={`rounded-full p-3 ${isMuted ? "bg-red-500" : "bg-white/20"}`}
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
               >
                 {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
               </button>
@@ -605,9 +704,14 @@ export default function VoiceCallPage() {
               </button>
 
               <button
+<<<<<<< HEAD
                 onClick={toggleSpeaker}
                 className={`rounded-full p-3 ${!isSpeakerOn ? "bg-red-500" : "bg-white/20"}`}
                 disabled={callStatus !== "connected"}
+=======
+                onClick={() => setIsSpeakerOn(!isSpeakerOn)}
+                className={`rounded-full p-3 ${!isSpeakerOn ? "bg-red-500" : "bg-white/20"}`}
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
               >
                 {isSpeakerOn ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
               </button>
@@ -640,10 +744,17 @@ export default function VoiceCallPage() {
                 {messages.length > 0 ? (
                   <div className="space-y-3">
                     {messages.map((msg, index) => (
+<<<<<<< HEAD
                       <div key={index} className={`flex ${msg.sender === user?.uid ? "justify-end" : "justify-start"}`}>
                         <div
                           className={`max-w-[80%] rounded-lg p-2 ${
                             msg.sender === user?.uid ? "bg-soft-amber text-white" : "bg-pale-stone text-graphite"
+=======
+                      <div key={index} className={`flex ${msg.sender === "patient" ? "justify-end" : "justify-start"}`}>
+                        <div
+                          className={`max-w-[80%] rounded-lg p-2 ${
+                            msg.sender === "patient" ? "bg-soft-amber text-white" : "bg-pale-stone text-graphite"
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
                           }`}
                         >
                           <p className="text-sm">{msg.content}</p>
@@ -680,8 +791,11 @@ export default function VoiceCallPage() {
           </div>
         )}
       </div>
+<<<<<<< HEAD
       {/* Call Notification */}
       <CallNotification />
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
     </div>
   )
 }

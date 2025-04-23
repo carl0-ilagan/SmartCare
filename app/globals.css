@@ -203,6 +203,7 @@
   animation: fadeInPage 0.3s ease forwards;
 }
 
+<<<<<<< HEAD
 /* Update dropdown animation keyframes for slower, more deliberate transitions */
 @keyframes dropdownEnter {
   0% {
@@ -297,6 +298,8 @@
   opacity: 1;
 }
 
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 /* Custom colors */
 .bg-soft-amber {
   background-color: #f5a623;
@@ -345,7 +348,10 @@
 .peer-checked\:text-soft-amber:peer-checked {
   color: #f5a623;
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893
 @keyframes slideInRight {
   from {
     transform: translateX(100%);
@@ -384,6 +390,7 @@
 .duration-300 {
   transition-duration: 300ms;
 }
+<<<<<<< HEAD
 
 /* Record page animations */
 @keyframes fadeInUp {
@@ -434,3 +441,5 @@
 .record-card-hover:hover .record-image-zoom {
   transform: scale(1.05);
 }
+=======
+>>>>>>> f93706602cbce9451b890424cbf8332ebb30c893

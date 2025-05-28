@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './auth-context';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { createCall, endCall } from '@/lib/webrtc';
 
 const CallContext = createContext();
@@ -14,14 +14,48 @@ export function CallProvider({ children }) {
   const [activeCall, setActiveCall] = useState(null);
   const ringtoneRef = useRef(null);
   const ringbackRef = useRef(null);
+  const [audioLoaded, setAudioLoaded] = useState(false);
 
-  // Initialize audio elements only on the client
+  // Initialize audio elements
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      ringtoneRef.current = new window.Audio('/sounds/ringtone.mp3');
-      ringbackRef.current = new window.Audio('/sounds/ringback.mp3');
-      ringtoneRef.current.loop = true;
-      ringbackRef.current.loop = true;
+      try {
+        ringtoneRef.current = new window.Audio('/sounds/ringtone.mp3');
+        ringbackRef.current = new window.Audio('/sounds/ringback.mp3');
+        
+        // Set up audio event listeners
+        const handleAudioLoad = () => setAudioLoaded(true);
+        const handleAudioError = (error) => {
+          console.error('Error loading audio:', error);
+          setAudioLoaded(false);
+        };
+
+        ringtoneRef.current.addEventListener('canplaythrough', handleAudioLoad);
+        ringbackRef.current.addEventListener('canplaythrough', handleAudioLoad);
+        ringtoneRef.current.addEventListener('error', handleAudioError);
+        ringbackRef.current.addEventListener('error', handleAudioError);
+
+        // Preload audio
+        ringtoneRef.current.load();
+        ringbackRef.current.load();
+
+        ringtoneRef.current.loop = true;
+        ringbackRef.current.loop = true;
+
+        return () => {
+          if (ringtoneRef.current) {
+            ringtoneRef.current.removeEventListener('canplaythrough', handleAudioLoad);
+            ringtoneRef.current.removeEventListener('error', handleAudioError);
+          }
+          if (ringbackRef.current) {
+            ringbackRef.current.removeEventListener('canplaythrough', handleAudioLoad);
+            ringbackRef.current.removeEventListener('error', handleAudioError);
+          }
+        };
+      } catch (error) {
+        console.error('Error initializing audio:', error);
+        setAudioLoaded(false);
+      }
     }
   }, []);
 
@@ -29,23 +63,33 @@ export function CallProvider({ children }) {
   useEffect(() => {
     if (!user) return;
 
-    const unsubscribe = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-      const userData = doc.data();
-      if (userData?.incomingCall) {
-        setIncomingCall(userData.incomingCall);
-        playRingtone();
-      } else {
-        setIncomingCall(null);
-        stopRingtone();
-      }
+    const callsQuery = query(
+      collection(db, 'calls'),
+      where('receiverId', '==', user.uid),
+      where('status', '==', 'calling')
+    );
+
+    const unsubscribe = onSnapshot(callsQuery, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const callData = change.doc.data();
+          setIncomingCall({
+            id: change.doc.id,
+            ...callData,
+          });
+          playRingtone();
+        }
+      });
     });
 
     return () => unsubscribe();
   }, [user]);
 
   const playRingtone = () => {
-    if (ringtoneRef.current) {
-      ringtoneRef.current.play().catch(console.error);
+    if (ringtoneRef.current && audioLoaded) {
+      ringtoneRef.current.play().catch(error => {
+        console.error('Error playing ringtone:', error);
+      });
     }
   };
 
@@ -57,8 +101,10 @@ export function CallProvider({ children }) {
   };
 
   const startRingback = () => {
-    if (ringbackRef.current) {
-      ringbackRef.current.play().catch(console.error);
+    if (ringbackRef.current && audioLoaded) {
+      ringbackRef.current.play().catch(error => {
+        console.error('Error playing ringback:', error);
+      });
     }
   };
 
@@ -71,6 +117,18 @@ export function CallProvider({ children }) {
 
   const initiateCall = async (receiverId, callType = 'video') => {
     try {
+      // Check if receiver is available
+      const receiverQuery = query(
+        collection(db, 'calls'),
+        where('receiverId', '==', receiverId),
+        where('status', 'in', ['calling', 'connected'])
+      );
+      const receiverSnapshot = await getDocs(receiverQuery);
+      
+      if (!receiverSnapshot.empty) {
+        throw new Error('User is currently in another call');
+      }
+
       const callId = await createCall(user.uid, receiverId, callType);
       setActiveCall({ id: callId, type: callType });
       startRingback();

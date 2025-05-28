@@ -1,16 +1,35 @@
+"use client"
+
 import { Phone, Video } from 'lucide-react';
 import { useCall } from '@/contexts/call-context';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
+import { useState } from 'react';
 
 export default function Chat({ conversation, messages, onSendMessage }) {
   const { initiateCall } = useCall();
+  const { user } = useAuth();
   const router = useRouter();
+  const [isCalling, setIsCalling] = useState(false);
 
   const handleStartCall = async (type) => {
     try {
-      const callId = await initiateCall(conversation.doctorId, type);
+      setIsCalling(true);
+      
+      // Determine the receiver ID based on user role
+      const receiverId = user.role === 'patient' ? conversation.doctorId : conversation.patientId;
+      
+      if (!receiverId) {
+        throw new Error('Receiver ID not found');
+      }
+
+      const callId = await initiateCall(receiverId, type);
       router.push(`/dashboard/calls/${type}/${callId}`);
     } catch (error) {
       console.error('Error starting call:', error);
+      // You might want to show an error message to the user here
+    } finally {
+      setIsCalling(false);
     }
   };
 
@@ -42,13 +61,23 @@ export default function Chat({ conversation, messages, onSendMessage }) {
         <div className="flex space-x-2">
           <button
             onClick={() => handleStartCall('voice')}
-            className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+            disabled={isCalling}
+            className={`p-2 rounded-full ${
+              isCalling 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-500 hover:bg-blue-600'
+            } text-white transition-colors`}
           >
             <Phone size={20} />
           </button>
           <button
             onClick={() => handleStartCall('video')}
-            className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+            disabled={isCalling}
+            className={`p-2 rounded-full ${
+              isCalling 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-500 hover:bg-blue-600'
+            } text-white transition-colors`}
           >
             <Video size={20} />
           </button>

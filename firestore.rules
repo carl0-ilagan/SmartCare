@@ -106,10 +106,23 @@ service cloud.firestore {
       allow create: if isSignedIn() && (
         request.auth.uid == request.resource.data.callerId ||
         request.auth.uid == request.resource.data.receiverId
+      ) && (
+        request.resource.data.keys().hasAll(['callerId', 'receiverId', 'type', 'status']) &&
+        request.resource.data.type in ['video', 'voice'] &&
+        request.resource.data.status == 'initiated'
       );
       allow update: if isSignedIn() && (
         request.auth.uid == resource.data.callerId ||
         request.auth.uid == resource.data.receiverId
+      ) && (
+        (
+          resource.data.status == 'initiated' && 
+          request.resource.data.status in ['connected', 'rejected', 'ended']
+        ) ||
+        (
+          resource.data.status == 'connected' && 
+          request.resource.data.status == 'ended'
+        )
       );
     }
 
@@ -130,6 +143,10 @@ service cloud.firestore {
       allow create: if isSignedIn() && (
         request.auth.uid == request.resource.data.callerId ||
         request.auth.uid == request.resource.data.receiverId
+      ) && (
+        request.resource.data.keys().hasAll(['callerId', 'receiverId', 'type', 'status', 'startedAt']) &&
+        request.resource.data.type in ['video', 'voice'] &&
+        request.resource.data.status in ['connected', 'rejected', 'ended']
       );
       allow update: if isSignedIn() && (
         request.auth.uid == resource.data.callerId ||

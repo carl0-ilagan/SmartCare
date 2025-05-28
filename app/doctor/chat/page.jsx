@@ -679,34 +679,34 @@ export default function DoctorChatPage() {
   }
 
   // Handle video call
-  const handleVideoCall = () => {
+  const handleVideoCall = async () => {
     if (selectedConversation && patientDetails) {
-      // Create a new call with conversation ID
-      createCall(user.uid, patientDetails.id, "video", selectedConversation.id)
-        .then((callId) => {
-          if (callId) {
-            router.push(`/doctor/calls/video/${patientDetails.id}`)
-          }
-        })
-        .catch((error) => {
-          console.error("Error starting video call:", error)
-        })
+      try {
+        // Create a new call
+        const callId = await createCall(user.uid, patientDetails.id, "video", selectedConversation.id)
+        if (callId) {
+          router.push(`/doctor/calls/video/${callId}`)
+        }
+      } catch (error) {
+        console.error("Error starting video call:", error)
+        alert("Could not start video call. Please try again.")
+      }
     }
   }
 
   // Handle voice call
-  const handleVoiceCall = () => {
+  const handleVoiceCall = async () => {
     if (selectedConversation && patientDetails) {
-      // Create a new call with conversation ID
-      createCall(user.uid, patientDetails.id, "voice", selectedConversation.id)
-        .then((callId) => {
-          if (callId) {
-            router.push(`/doctor/calls/voice/${patientDetails.id}`)
-          }
-        })
-        .catch((error) => {
-          console.error("Error starting voice call:", error)
-        })
+      try {
+        // Create a new call
+        const callId = await createCall(user.uid, patientDetails.id, "voice", selectedConversation.id)
+        if (callId) {
+          router.push(`/doctor/calls/voice/${callId}`)
+        }
+      } catch (error) {
+        console.error("Error starting voice call:", error)
+        alert("Could not start voice call. Please try again.")
+      }
     }
   }
 

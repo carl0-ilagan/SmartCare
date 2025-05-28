@@ -358,11 +358,11 @@
 }
 
 /* Peer utilities - using proper CSS selectors */
-.peer:checked ~ .peer-checked\:border-soft-amber {
+.peer:checked~.peer-checked\:border-soft-amber {
   border-color: #f5a623;
 }
 
-.peer:checked ~ .peer-checked\:text-soft-amber {
+.peer:checked~.peer-checked\:text-soft-amber {
   color: #f5a623;
 }
 
@@ -433,6 +433,7 @@
 }
 
 @keyframes pulse {
+
   0%,
   100% {
     opacity: 1;
@@ -505,6 +506,7 @@
 
 /* Floating animations for notification dots */
 @keyframes float-1 {
+
   0%,
   100% {
     transform: translateY(0);
@@ -516,6 +518,7 @@
 }
 
 @keyframes float-2 {
+
   0%,
   100% {
     transform: translateY(0);
@@ -527,6 +530,7 @@
 }
 
 @keyframes float-3 {
+
   0%,
   100% {
     transform: translateY(0);
@@ -538,6 +542,7 @@
 }
 
 @keyframes float-4 {
+
   0%,
   100% {
     transform: translateY(0);

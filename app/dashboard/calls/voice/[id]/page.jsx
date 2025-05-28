@@ -18,6 +18,15 @@ import {
 import { db } from "@/lib/firebase"
 import { addCallStatusMessage } from "@/lib/message-utils"
 import CallNotification from "@/components/call-notification"
+import {
+  initializePeerConnection,
+  createOffer,
+  handleOffer,
+  handleAnswer,
+  collectIceCandidates,
+  endCall,
+  getCallStats,
+} from "@/lib/webrtc"
 
 export default function VoiceCallPage() {
   const router = useRouter()
@@ -34,15 +43,15 @@ export default function VoiceCallPage() {
   const [callId, setCallId] = useState(null)
   const [isCallAccepted, setIsCallAccepted] = useState(false)
   const [isIncomingCall, setIsIncomingCall] = useState(false)
-  const [ringbackTone, setRingbackTone] = useState(false)
+  const [callQuality, setCallQuality] = useState(null)
 
   // References for WebRTC
   const audioRef = useRef(null)
-  const ringbackRef = useRef(null)
   const peerConnectionRef = useRef(null)
   const localStreamRef = useRef(null)
   const callDocRef = useRef(null)
   const callTimerRef = useRef(null)
+  const statsIntervalRef = useRef(null)
 
   // Fetch doctor information
   useEffect(() => {
@@ -75,316 +84,119 @@ export default function VoiceCallPage() {
     fetchDoctorInfo()
   }, [params.id])
 
-  // Play ringback tone
-  useEffect(() => {
-    if (ringbackTone && ringbackRef.current) {
-      ringbackRef.current.currentTime = 0
-      ringbackRef.current.play().catch((err) => console.error("Error playing sound:", err))
-    } else if (!ringbackTone && ringbackRef.current) {
-      ringbackRef.current.pause()
-      ringbackRef.current.currentTime = 0
-    }
-
-    return () => {
-      if (ringbackRef.current) {
-        ringbackRef.current.pause()
-        ringbackRef.current.currentTime = 0
-      }
-    }
-  }, [ringbackTone])
-
-  // Check for existing call or create new one
+  // Initialize WebRTC
   useEffect(() => {
     if (!user || !params.id || !doctorInfo) return
 
-    const checkExistingCall = async () => {
+    const setupWebRTC = async () => {
       try {
-        // Check if there's an incoming call from this doctor
-        const callSnapshot = await getDoc(doc(db, "activeCall", user.uid))
+        // Get local media stream
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        })
+        localStreamRef.current = stream
 
-        if (callSnapshot.exists()) {
-          const callData = callSnapshot.data()
+        // Set up audio output
+        if (audioRef.current) {
+          audioRef.current.srcObject = stream
+        }
 
-          // If there's an active call with this doctor
-          if (callData.participants.includes(user.uid) && callData.participants.includes(params.id)) {
-            setCallId(callData.callId)
-            callDocRef.current = doc(db, "calls", callData.callId)
-            setIsIncomingCall(callData.initiator !== user.uid)
+        // Initialize peer connection
+        const peerConnection = initializePeerConnection()
+        peerConnectionRef.current = peerConnection
 
-            // If we're accepting an incoming call
-            if (callData.initiator !== user.uid) {
-              // Update call status to accepted
-              await updateDoc(doc(db, "calls", callData.callId), {
-                status: "accepted",
-                acceptedAt: serverTimestamp(),
-              })
+        // Add local tracks to peer connection
+        stream.getTracks().forEach((track) => {
+          peerConnection.addTrack(track, stream)
+        })
+
+        // Handle remote stream
+        peerConnection.ontrack = (event) => {
+          if (audioRef.current && event.streams[0]) {
+            audioRef.current.srcObject = event.streams[0]
+          }
+        }
+
+        // Check if we're the caller or callee
+        const callDoc = await getDoc(doc(db, "calls", params.id))
+        if (callDoc.exists()) {
+          const callData = callDoc.data()
+          setCallId(params.id)
+          callDocRef.current = doc(db, "calls", params.id)
+          setIsIncomingCall(callData.callerId !== user.uid)
+
+          if (callData.callerId === user.uid) {
+            // We're the caller
+            const offer = await createOffer(peerConnection)
+            await updateDoc(callDocRef.current, { offer })
+          } else {
+            // We're the callee
+            if (callData.offer) {
+              const answer = await handleOffer(peerConnection, callData.offer)
+              await updateDoc(callDocRef.current, { answer })
+            }
+          }
+
+          // Set up ICE candidate collection
+          collectIceCandidates(params.id, peerConnection, user.uid, callData.callerId === user.uid ? callData.receiverId : callData.callerId)
+
+          // Listen for call status changes
+          onSnapshot(callDocRef.current, (doc) => {
+            const data = doc.data()
+            if (!data) return
+
+            if (data.status === "accepted") {
               setCallStatus("connected")
               setIsCallAccepted(true)
               startCallTimer()
-            } else {
-              // We're the initiator, start ringback tone
-              setRingbackTone(true)
-
-              // Listen for call status changes
-              const unsubscribe = onSnapshot(doc(db, "calls", callData.callId), (doc) => {
-                const data = doc.data()
-                if (!data) return
-
-                if (data.status === "accepted") {
-                  setRingbackTone(false)
-                  setIsCallAccepted(true)
-                  setCallStatus("connected")
-                  startCallTimer()
-                } else if (data.status === "ended" || data.status === "rejected") {
-                  setRingbackTone(false)
-                  handleCallEnded()
-                }
-
-                // Update messages
-                if (data.messages) {
-                  setMessages(data.messages)
-                }
-              })
-
-              return unsubscribe
+            } else if (data.status === "ended") {
+              handleCallEnded()
             }
-          } else {
-            // Create a new call
-            await initializeCall()
-          }
-        } else {
-          // Create a new call
-          await initializeCall()
+
+            // Handle answer if we're the caller
+            if (data.answer && !peerConnection.currentRemoteDescription) {
+              handleAnswer(peerConnection, data.answer)
+            }
+          })
         }
       } catch (error) {
-        console.error("Error checking existing call:", error)
-        await initializeCall()
+        console.error("Error setting up WebRTC:", error)
+        alert("Could not access microphone. Please check permissions and try again.")
       }
     }
 
-    checkExistingCall()
+    setupWebRTC()
 
-    // Cleanup function
     return () => {
-      // End call if it's still active when component unmounts
-      if (callId && callStatus !== "ended") {
-        endCall()
-      }
-
-      // Stop media tracks
+      // Cleanup
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop())
       }
-
-      // Clear timer
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close()
+      }
       if (callTimerRef.current) {
         clearInterval(callTimerRef.current)
       }
-
-      // Stop ringback tone
-      setRingbackTone(false)
+      if (statsIntervalRef.current) {
+        clearInterval(statsIntervalRef.current)
+      }
     }
   }, [user, params.id, doctorInfo])
-
-  // Initialize call
-  const initializeCall = async () => {
-    try {
-      // Create a new call document
-      const callData = {
-        createdAt: serverTimestamp(),
-        participants: [user.uid, params.id],
-        type: "voice",
-        status: "ringing",
-        initiator: user.uid,
-        endedAt: null,
-        messages: [],
-      }
-
-      const callRef = await addDoc(collection(db, "calls"), callData)
-      setCallId(callRef.id)
-      callDocRef.current = callRef
-
-      // Create an active call reference for the doctor
-      await setDoc(doc(db, "activeCall", params.id), {
-        callId: callRef.id,
-        participants: [user.uid, params.id],
-        initiator: user.uid,
-        type: "voice",
-        createdAt: serverTimestamp(),
-      })
-
-      // Start ringback tone
-      setRingbackTone(true)
-
-      // Listen for call status changes
-      const unsubscribe = onSnapshot(doc(db, "calls", callRef.id), (doc) => {
-        const data = doc.data()
-        if (!data) return
-
-        if (data.status === "accepted") {
-          setRingbackTone(false)
-          setIsCallAccepted(true)
-          setCallStatus("connected")
-          // Start call timer
-          startCallTimer()
-        } else if (data.status === "ended" || data.status === "rejected") {
-          setRingbackTone(false)
-          handleCallEnded()
-        }
-
-        // Update messages
-        if (data.messages) {
-          setMessages(data.messages)
-        }
-      })
-
-      // Initialize WebRTC
-      await setupWebRTC()
-
-      return unsubscribe
-    } catch (error) {
-      console.error("Error initializing call:", error)
-      alert("Could not initialize call. Please try again.")
-      router.push("/dashboard/messages")
-    }
-  }
-
-  // Setup WebRTC
-  const setupWebRTC = async () => {
-    try {
-      // Get local media stream (audio only)
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: false,
-        audio: true,
-      })
-
-      localStreamRef.current = stream
-
-      // Initialize peer connection
-      const configuration = {
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:19302" },
-          { urls: "stun:stun2.l.google.com:19302" },
-          { urls: "stun:stun3.l.google.com:19302" },
-          { urls: "stun:stun4.l.google.com:19302" },
-        ],
-      }
-
-      const peerConnection = new RTCPeerConnection(configuration)
-      peerConnectionRef.current = peerConnection
-
-      // Add local tracks to peer connection
-      stream.getTracks().forEach((track) => {
-        peerConnection.addTrack(track, stream)
-      })
-
-      // Handle remote stream
-      peerConnection.ontrack = (event) => {
-        if (audioRef.current && event.streams[0]) {
-          audioRef.current.srcObject = event.streams[0]
-
-          // Play audio when it's ready
-          audioRef.current.onloadedmetadata = () => {
-            audioRef.current.play().catch(console.error)
-          }
-        }
-      }
-
-      // Handle ICE candidates
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate && callDocRef.current) {
-          const candidatesCollection = collection(callDocRef.current, "candidates")
-          addDoc(candidatesCollection, { ...event.candidate.toJSON(), from: user.uid })
-        }
-      }
-
-      // Create and send offer if you're the initiator
-      if (!isIncomingCall) {
-        const offer = await peerConnection.createOffer()
-        await peerConnection.setLocalDescription(offer)
-
-        // Update call document with the offer
-        if (callDocRef.current) {
-          await updateDoc(callDocRef.current, {
-            offer: {
-              type: offer.type,
-              sdp: offer.sdp,
-            },
-          })
-        }
-      }
-
-      // Listen for remote description (answer or offer)
-      if (callDocRef.current) {
-        const unsubscribe = onSnapshot(callDocRef.current, (doc) => {
-          const data = doc.data()
-          if (!data) return
-
-          // If there's an answer and we're the initiator
-          if (!isIncomingCall && data.answer && !peerConnection.currentRemoteDescription) {
-            const answer = new RTCSessionDescription(data.answer)
-            peerConnection.setRemoteDescription(answer).catch(console.error)
-          }
-
-          // If there's an offer and we're not the initiator
-          if (isIncomingCall && data.offer && !peerConnection.currentRemoteDescription) {
-            handleRemoteOffer(data.offer)
-          }
-        })
-
-        // Listen for ICE candidates
-        const candidatesUnsubscribe = onSnapshot(collection(callDocRef.current, "candidates"), (snapshot) => {
-          snapshot.docChanges().forEach((change) => {
-            if (change.type === "added") {
-              const data = change.doc.data()
-              if (data.from !== user.uid) {
-                const candidate = new RTCIceCandidate(data)
-                peerConnection.addIceCandidate(candidate).catch(console.error)
-              }
-            }
-          })
-        })
-
-        return () => {
-          unsubscribe()
-          candidatesUnsubscribe()
-        }
-      }
-    } catch (error) {
-      console.error("Error setting up WebRTC:", error)
-      alert("Could not access microphone. Please check permissions.")
-    }
-  }
-
-  // Handle remote offer
-  const handleRemoteOffer = async (offer) => {
-    if (!peerConnectionRef.current) return
-
-    try {
-      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(offer))
-      const answer = await peerConnectionRef.current.createAnswer()
-      await peerConnectionRef.current.setLocalDescription(answer)
-
-      // Send answer
-      if (callDocRef.current) {
-        await updateDoc(callDocRef.current, {
-          answer: {
-            type: answer.type,
-            sdp: answer.sdp,
-          },
-        })
-      }
-    } catch (error) {
-      console.error("Error handling remote offer:", error)
-    }
-  }
 
   // Start call timer
   const startCallTimer = () => {
     callTimerRef.current = setInterval(() => {
       setCallTime((prevTime) => prevTime + 1)
     }, 1000)
+
+    // Start monitoring call quality
+    statsIntervalRef.current = setInterval(async () => {
+      if (peerConnectionRef.current) {
+        const stats = await getCallStats(peerConnectionRef.current)
+        setCallQuality(stats)
+      }
+    }, 2000)
   }
 
   // Format call time
@@ -419,64 +231,11 @@ export default function VoiceCallPage() {
   }
 
   // Handle ending the call
-  const handleEndCall = () => {
-    endCall()
-    router.push("/dashboard/messages")
-  }
-
-  // End call function
-  const endCall = async () => {
-    // Stop media tracks
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop())
-    }
-
-    // Close peer connection
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close()
-    }
-
-    // Update call status in Firestore
+  const handleEndCall = async () => {
     if (callId) {
-      try {
-        // Get the call document to check if it has a conversationId
-        const callDoc = await getDoc(doc(db, "calls", callId))
-        const callData = callDoc.exists() ? callDoc.data() : null
-
-        await updateDoc(doc(db, "calls", callId), {
-          status: "ended",
-          endedAt: serverTimestamp(),
-          duration: callTime,
-        })
-
-        // Add call status message to conversation if this call was initiated from a chat
-        if (callData && callData.conversationId) {
-          await addCallStatusMessage(callData.conversationId, {
-            type: "voice",
-            status: "ended",
-            initiator: callData.initiator,
-            duration: callTime,
-            participants: callData.participants,
-          })
-        }
-
-        // Remove active call reference
-        if (isIncomingCall) {
-          await deleteDoc(doc(db, "activeCall", user.uid))
-        } else {
-          await deleteDoc(doc(db, "activeCall", params.id))
-        }
-      } catch (error) {
-        console.error("Error ending call:", error)
-      }
+      await endCall(callId)
+      handleCallEnded()
     }
-
-    // Clear timer
-    if (callTimerRef.current) {
-      clearInterval(callTimerRef.current)
-    }
-
-    setCallStatus("ended")
   }
 
   // Handle call ended
@@ -491,9 +250,12 @@ export default function VoiceCallPage() {
       peerConnectionRef.current.close()
     }
 
-    // Clear timer
+    // Clear timers
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current)
+    }
+    if (statsIntervalRef.current) {
+      clearInterval(statsIntervalRef.current)
     }
 
     setCallStatus("ended")
@@ -518,71 +280,59 @@ export default function VoiceCallPage() {
   // Toggle speaker
   const toggleSpeaker = () => {
     if (audioRef.current) {
-      audioRef.current.volume = isSpeakerOn ? 0.2 : 1.0
+      audioRef.current.muted = !audioRef.current.muted
       setIsSpeakerOn(!isSpeakerOn)
     }
   }
 
   return (
     <div className="h-screen w-full bg-graphite text-white">
-      {/* Ringback tone */}
-      <audio ref={ringbackRef} src="/sounds/ringback-tone.mp3" loop />
-
-      {/* Remote audio */}
-      <audio ref={audioRef} autoPlay />
+      {/* Hidden audio element for remote audio */}
+      <audio ref={audioRef} autoPlay playsInline />
 
       {/* Main call area */}
       <div className="relative h-full w-full">
-        {/* Doctor's profile */}
-        <div className="absolute inset-0 flex items-center justify-center">
+        {/* Call status and info */}
+        <div className="absolute inset-0 flex items-center justify-center bg-graphite">
           {doctorInfo && (
-            <div className="flex flex-col items-center justify-center text-center">
-              <div className="mb-6 h-32 w-32 overflow-hidden rounded-full bg-pale-stone">
-                {doctorInfo.photoURL ? (
-                  <img
-                    src={doctorInfo.photoURL || "/placeholder.svg"}
-                    alt={doctorInfo.displayName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <User className="h-full w-full p-6 text-drift-gray" />
-                )}
-              </div>
-              <h2 className="text-2xl font-bold">{doctorInfo.displayName}</h2>
-              <p className="text-soft-amber">{doctorInfo.specialty}</p>
-              <div className="mt-4 text-lg">
-                <p>{callStatus === "connecting" ? "Calling..." : "Voice Call"}</p>
-                <p className="mt-2">{formatCallTime()}</p>
-              </div>
-
-              {/* Audio visualization (simulated) */}
-              {callStatus === "connected" && (
-                <div className="mt-8 flex h-12 w-64 items-center justify-center space-x-1">
-                  {Array.from({ length: 20 }).map((_, i) => {
-                    const height = Math.sin(i / 3 + callTime / 2) * 20 + 30
-                    return <div key={i} className="w-1 bg-soft-amber" style={{ height: `${height}%` }}></div>
-                  })}
-                </div>
-              )}
-
-              {callStatus === "connecting" && (
-                <div className="mt-8">
-                  <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-soft-amber border-t-transparent"></div>
+            <div className="flex h-full w-full flex-col items-center justify-center">
+              {callStatus === "connecting" ? (
+                <div className="text-center">
+                  <div className="mb-4 text-2xl">
+                    {isIncomingCall ? "Connecting to" : "Calling"} {doctorInfo.displayName}...
+                  </div>
+                  <div className="mx-auto h-16 w-16 animate-spin rounded-full border-4 border-soft-amber border-t-transparent"></div>
                   {!isIncomingCall && <div className="mt-4 animate-pulse-slow">Ringing...</div>}
                 </div>
-              )}
-
-              {callStatus === "ended" && (
-                <div className="mt-8">
-                  <p>Call Ended</p>
-                  <p className="mt-2 text-sm">Redirecting to messages...</p>
+              ) : callStatus === "ended" ? (
+                <div className="text-center">
+                  <div className="mb-4 text-2xl">Call Ended</div>
+                  <div>Redirecting to chat...</div>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="mb-8 h-32 w-32 overflow-hidden rounded-full bg-pale-stone">
+                    {doctorInfo.photoURL ? (
+                      <img
+                        src={doctorInfo.photoURL}
+                        alt={doctorInfo.displayName}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-soft-amber text-white">
+                        <User className="h-16 w-16" />
+                      </div>
+                    )}
+                  </div>
+                  <h2 className="text-2xl font-bold">{doctorInfo.displayName}</h2>
+                  <p className="text-soft-amber">{doctorInfo.specialty}</p>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Call controls */}
+        {/* Call info and controls */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
           <div className="mx-auto flex max-w-md flex-col items-center">
             {/* Call duration */}
@@ -592,11 +342,7 @@ export default function VoiceCallPage() {
 
             {/* Call controls */}
             <div className="flex items-center space-x-4">
-              <button
-                onClick={toggleMute}
-                className={`rounded-full p-3 ${isMuted ? "bg-red-500" : "bg-white/20"}`}
-                disabled={callStatus !== "connected"}
-              >
+              <button onClick={toggleMute} className={`rounded-full p-3 ${isMuted ? "bg-red-500" : "bg-white/20"}`}>
                 {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
               </button>
 
@@ -604,11 +350,7 @@ export default function VoiceCallPage() {
                 <Phone className="h-6 w-6 rotate-135" />
               </button>
 
-              <button
-                onClick={toggleSpeaker}
-                className={`rounded-full p-3 ${!isSpeakerOn ? "bg-red-500" : "bg-white/20"}`}
-                disabled={callStatus !== "connected"}
-              >
+              <button onClick={toggleSpeaker} className={`rounded-full p-3 ${!isSpeakerOn ? "bg-red-500" : "bg-white/20"}`}>
                 {isSpeakerOn ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
               </button>
 
@@ -622,60 +364,12 @@ export default function VoiceCallPage() {
           </div>
         </div>
 
-        {/* Chat sidebar */}
-        {showChat && (
-          <div className="absolute bottom-0 right-0 top-0 w-80 bg-white text-graphite">
-            <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b border-pale-stone p-3">
-                <h3 className="font-medium">Chat</h3>
-                <button
-                  onClick={() => setShowChat(false)}
-                  className="rounded-full p-1 text-drift-gray hover:bg-pale-stone"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-3">
-                {messages.length > 0 ? (
-                  <div className="space-y-3">
-                    {messages.map((msg, index) => (
-                      <div key={index} className={`flex ${msg.sender === user?.uid ? "justify-end" : "justify-start"}`}>
-                        <div
-                          className={`max-w-[80%] rounded-lg p-2 ${
-                            msg.sender === user?.uid ? "bg-soft-amber text-white" : "bg-pale-stone text-graphite"
-                          }`}
-                        >
-                          <p className="text-sm">{msg.content}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <p className="text-center text-sm text-drift-gray">No messages yet. Start the conversation!</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-pale-stone p-3">
-                <form onSubmit={handleSendMessage} className="flex">
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    className="flex-1 rounded-l-md border border-earth-beige bg-white py-2 px-3 text-graphite placeholder:text-drift-gray/60 focus:border-soft-amber focus:outline-none focus:ring-1 focus:ring-soft-amber"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!message.trim()}
-                    className="rounded-r-md bg-soft-amber px-3 py-2 text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
-                  >
-                    Send
-                  </button>
-                </form>
-              </div>
+        {/* Call quality indicator */}
+        {callQuality && (
+          <div className="absolute top-4 right-4 rounded-lg bg-black/50 px-3 py-1 text-sm">
+            <div className="flex items-center space-x-2">
+              <div className={`h-2 w-2 rounded-full ${callQuality.audioPacketsLost < 5 ? "bg-green-500" : "bg-red-500"}`} />
+              <span>Audio: {callQuality.audioPacketsLost < 5 ? "Good" : "Poor"}</span>
             </div>
           </div>
         )}

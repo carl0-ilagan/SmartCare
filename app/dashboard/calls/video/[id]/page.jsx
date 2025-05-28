@@ -8,15 +8,20 @@ import {
   doc,
   getDoc,
   collection,
-  addDoc,
   onSnapshot,
   updateDoc,
   serverTimestamp,
-  setDoc,
-  deleteDoc,
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { addCallStatusMessage } from "@/lib/message-utils"
+import {
+  initializePeerConnection,
+  createOffer,
+  handleOffer,
+  handleAnswer,
+  collectIceCandidates,
+  endCall,
+  getCallStats,
+} from "@/lib/webrtc"
 
 export default function VideoCallPage() {
   const router = useRouter()
@@ -29,11 +34,11 @@ export default function VideoCallPage() {
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState([])
   const [doctorInfo, setDoctorInfo] = useState(null)
-  const [callStatus, setCallStatus] = useState("connecting") // connecting, connected, ended
+  const [callStatus, setCallStatus] = useState("connecting")
   const [callId, setCallId] = useState(null)
   const [isCallAccepted, setIsCallAccepted] = useState(false)
   const [isIncomingCall, setIsIncomingCall] = useState(false)
-  const [ringbackTone, setRingbackTone] = useState(false)
+  const [callQuality, setCallQuality] = useState(null)
 
   // References for WebRTC
   const localVideoRef = useRef(null)
@@ -42,30 +47,15 @@ export default function VideoCallPage() {
   const localStreamRef = useRef(null)
   const callDocRef = useRef(null)
   const callTimerRef = useRef(null)
-  const audioRef = useRef(null)
+  const statsIntervalRef = useRef(null)
 
   // Fetch doctor information
   useEffect(() => {
     const fetchDoctorInfo = async () => {
-      if (!params.id) return
-
       try {
         const doctorDoc = await getDoc(doc(db, "users", params.id))
-
         if (doctorDoc.exists()) {
-          setDoctorInfo({
-            id: doctorDoc.id,
-            ...doctorDoc.data(),
-          })
-        } else {
-          console.error("Doctor not found")
-          // Fallback to show something
-          setDoctorInfo({
-            id: params.id,
-            displayName: "Doctor",
-            specialty: "Healthcare Provider",
-            avatar: null,
-          })
+          setDoctorInfo(doctorDoc.data())
         }
       } catch (error) {
         console.error("Error fetching doctor info:", error)
@@ -75,335 +65,120 @@ export default function VideoCallPage() {
     fetchDoctorInfo()
   }, [params.id])
 
-  // Play ringback tone
+  // Initialize WebRTC
   useEffect(() => {
-    if (ringbackTone && audioRef.current) {
-      audioRef.current.currentTime = 0
-      audioRef.current.play().catch((err) => console.error("Error playing sound:", err))
-    } else if (!ringbackTone && audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
-    }
+    if (!user || !params.id) return
 
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current.currentTime = 0
-      }
-    }
-  }, [ringbackTone])
-
-  // Check for existing call or create new one
-  useEffect(() => {
-    if (!user || !params.id || !doctorInfo) return
-
-    const checkExistingCall = async () => {
+    const setupWebRTC = async () => {
       try {
-        // Check if there's an incoming call from this doctor
-        const callSnapshot = await getDoc(doc(db, "activeCall", user.uid))
+        // Get local media stream
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        })
+        localStreamRef.current = stream
 
-        if (callSnapshot.exists()) {
-          const callData = callSnapshot.data()
+        // Display local video
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream
+        }
 
-          // If there's an active call with this doctor
-          if (callData.participants.includes(user.uid) && callData.participants.includes(params.id)) {
-            setCallId(callData.callId)
-            callDocRef.current = doc(db, "calls", callData.callId)
-            setIsIncomingCall(callData.initiator !== user.uid)
+        // Initialize peer connection
+        const peerConnection = initializePeerConnection()
+        peerConnectionRef.current = peerConnection
 
-            // If we're accepting an incoming call
-            if (callData.initiator !== user.uid) {
-              // Update call status to accepted
-              await updateDoc(doc(db, "calls", callData.callId), {
-                status: "accepted",
-                acceptedAt: serverTimestamp(),
-              })
+        // Add local tracks to peer connection
+        stream.getTracks().forEach((track) => {
+          peerConnection.addTrack(track, stream)
+        })
+
+        // Handle remote stream
+        peerConnection.ontrack = (event) => {
+          if (remoteVideoRef.current && event.streams[0]) {
+            remoteVideoRef.current.srcObject = event.streams[0]
+          }
+        }
+
+        // Check if we're the caller or callee
+        const callDoc = await getDoc(doc(db, "calls", params.id))
+        if (callDoc.exists()) {
+          const callData = callDoc.data()
+          setCallId(params.id)
+          callDocRef.current = doc(db, "calls", params.id)
+          setIsIncomingCall(callData.callerId !== user.uid)
+
+          if (callData.callerId === user.uid) {
+            // We're the caller
+            const offer = await createOffer(peerConnection)
+            await updateDoc(callDocRef.current, { offer })
+          } else {
+            // We're the callee
+            if (callData.offer) {
+              const answer = await handleOffer(peerConnection, callData.offer)
+              await updateDoc(callDocRef.current, { answer })
+            }
+          }
+
+          // Set up ICE candidate collection
+          collectIceCandidates(params.id, peerConnection, user.uid, callData.callerId === user.uid ? callData.receiverId : callData.callerId)
+
+          // Listen for call status changes
+          onSnapshot(callDocRef.current, (doc) => {
+            const data = doc.data()
+            if (!data) return
+
+            if (data.status === "accepted") {
               setCallStatus("connected")
               setIsCallAccepted(true)
               startCallTimer()
-            } else {
-              // We're the initiator, start ringback tone
-              setRingbackTone(true)
-
-              // Listen for call status changes
-              const unsubscribe = onSnapshot(doc(db, "calls", callData.callId), (doc) => {
-                const data = doc.data()
-                if (!data) return
-
-                if (data.status === "accepted") {
-                  setRingbackTone(false)
-                  setIsCallAccepted(true)
-                  setCallStatus("connected")
-                  startCallTimer()
-                } else if (data.status === "ended" || data.status === "rejected") {
-                  setRingbackTone(false)
-                  handleCallEnded()
-                }
-
-                // Update messages
-                if (data.messages) {
-                  setMessages(data.messages)
-                }
-              })
-
-              return unsubscribe
+            } else if (data.status === "ended") {
+              handleCallEnded()
             }
-          } else {
-            // Create a new call
-            await initializeCall()
-          }
-        } else {
-          // Create a new call
-          await initializeCall()
+
+            // Handle answer if we're the caller
+            if (data.answer && !peerConnection.currentRemoteDescription) {
+              handleAnswer(peerConnection, data.answer)
+            }
+          })
         }
       } catch (error) {
-        console.error("Error checking existing call:", error)
-        await initializeCall()
+        console.error("Error setting up WebRTC:", error)
+        alert("Could not access camera or microphone. Please check permissions and try again.")
       }
     }
 
-    checkExistingCall()
+    setupWebRTC()
 
-    // Cleanup function
     return () => {
-      // End call if it's still active when component unmounts
-      if (callId && callStatus !== "ended") {
-        endCall()
-      }
-
-      // Stop media tracks
+      // Cleanup
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => track.stop())
       }
-
-      // Clear timer
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close()
+      }
       if (callTimerRef.current) {
         clearInterval(callTimerRef.current)
       }
-
-      // Stop ringback tone
-      setRingbackTone(false)
+      if (statsIntervalRef.current) {
+        clearInterval(statsIntervalRef.current)
+      }
     }
-  }, [user, params.id, doctorInfo])
-
-  // Initialize call
-  const initializeCall = async () => {
-    try {
-      // Create a new call document
-      const callData = {
-        createdAt: serverTimestamp(),
-        participants: [user.uid, params.id],
-        type: "video",
-        status: "ringing",
-        initiator: user.uid,
-        endedAt: null,
-        messages: [],
-      }
-
-      const callRef = await addDoc(collection(db, "calls"), callData)
-      setCallId(callRef.id)
-      callDocRef.current = callRef
-
-      // Create an active call reference for the doctor
-      await setDoc(doc(db, "activeCall", params.id), {
-        callId: callRef.id,
-        participants: [user.uid, params.id],
-        initiator: user.uid,
-        type: "video",
-        createdAt: serverTimestamp(),
-      })
-
-      // Start ringback tone
-      setRingbackTone(true)
-
-      // Listen for call status changes
-      const unsubscribe = onSnapshot(doc(db, "calls", callRef.id), (doc) => {
-        const data = doc.data()
-        if (!data) return
-
-        if (data.status === "accepted") {
-          setRingbackTone(false)
-          setIsCallAccepted(true)
-          setCallStatus("connected")
-          // Start call timer
-          startCallTimer()
-        } else if (data.status === "ended" || data.status === "rejected") {
-          setRingbackTone(false)
-          handleCallEnded()
-        }
-
-        // Update messages
-        if (data.messages) {
-          setMessages(data.messages)
-        }
-      })
-
-      // Initialize WebRTC
-      await setupWebRTC()
-
-      return unsubscribe
-    } catch (error) {
-      console.error("Error initializing call:", error)
-      alert("Could not initialize call. Please try again.")
-      router.push("/dashboard/messages")
-    }
-  }
-
-  // Setup WebRTC
-  const setupWebRTC = async () => {
-    try {
-      // Get local media stream with explicit constraints
-      const constraints = {
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: "user",
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints).catch((error) => {
-        console.error("Error accessing media devices:", error)
-        // Try fallback with just basic constraints
-        return navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      })
-
-      localStreamRef.current = stream
-
-      // Display local video
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream
-      }
-
-      // Initialize peer connection
-      const configuration = {
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:19302" },
-          { urls: "stun:stun2.l.google.com:19302" },
-          { urls: "stun:stun3.l.google.com:19302" },
-          { urls: "stun:stun4.l.google.com:19302" },
-        ],
-      }
-
-      const peerConnection = new RTCPeerConnection(configuration)
-      peerConnectionRef.current = peerConnection
-
-      // Add local tracks to peer connection
-      stream.getTracks().forEach((track) => {
-        peerConnection.addTrack(track, stream)
-      })
-
-      // Handle remote stream
-      peerConnection.ontrack = (event) => {
-        if (remoteVideoRef.current && event.streams[0]) {
-          remoteVideoRef.current.srcObject = event.streams[0]
-        }
-      }
-
-      // Handle ICE candidates
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate && callDocRef.current) {
-          const candidatesCollection = collection(callDocRef.current, "candidates")
-          addDoc(candidatesCollection, { ...event.candidate.toJSON(), from: user.uid })
-        }
-      }
-
-      // Log connection state changes for debugging
-      peerConnection.oniceconnectionstatechange = () => {
-        console.log("ICE connection state:", peerConnection.iceConnectionState)
-      }
-
-      // Create and send offer if you're the initiator
-      if (!isIncomingCall) {
-        const offer = await peerConnection.createOffer()
-        await peerConnection.setLocalDescription(offer)
-
-        // Update call document with the offer
-        if (callDocRef.current) {
-          await updateDoc(callDocRef.current, {
-            offer: {
-              type: offer.type,
-              sdp: offer.sdp,
-            },
-          })
-        }
-      }
-
-      // Listen for remote description (answer or offer)
-      if (callDocRef.current) {
-        const unsubscribe = onSnapshot(callDocRef.current, (doc) => {
-          const data = doc.data()
-          if (!data) return
-
-          // If there's an answer and we're the initiator
-          if (!isIncomingCall && data.answer && !peerConnection.currentRemoteDescription) {
-            const answer = new RTCSessionDescription(data.answer)
-            peerConnection.setRemoteDescription(answer).catch(console.error)
-          }
-
-          // If there's an offer and we're not the initiator
-          if (isIncomingCall && data.offer && !peerConnection.currentRemoteDescription) {
-            handleRemoteOffer(data.offer)
-          }
-        })
-
-        // Listen for ICE candidates
-        const candidatesUnsubscribe = onSnapshot(collection(callDocRef.current, "candidates"), (snapshot) => {
-          snapshot.docChanges().forEach((change) => {
-            if (change.type === "added") {
-              const data = change.doc.data()
-              if (data.from !== user.uid) {
-                const candidate = new RTCIceCandidate(data)
-                peerConnection.addIceCandidate(candidate).catch(console.error)
-              }
-            }
-          })
-        })
-
-        return () => {
-          unsubscribe()
-          candidatesUnsubscribe()
-        }
-      }
-    } catch (error) {
-      console.error("Error setting up WebRTC:", error)
-      alert("Could not access camera or microphone. Please check permissions and try again.")
-    }
-  }
-
-  // Handle remote offer
-  const handleRemoteOffer = async (offer) => {
-    if (!peerConnectionRef.current) return
-
-    try {
-      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(offer))
-      const answer = await peerConnectionRef.current.createAnswer()
-      await peerConnectionRef.current.setLocalDescription(answer)
-
-      // Send answer
-      if (callDocRef.current) {
-        await updateDoc(callDocRef.current, {
-          answer: {
-            type: answer.type,
-            sdp: answer.sdp,
-          },
-        })
-      }
-    } catch (error) {
-      console.error("Error handling remote offer:", error)
-    }
-  }
+  }, [user, params.id])
 
   // Start call timer
   const startCallTimer = () => {
     callTimerRef.current = setInterval(() => {
       setCallTime((prevTime) => prevTime + 1)
     }, 1000)
+
+    // Start monitoring call quality
+    statsIntervalRef.current = setInterval(async () => {
+      if (peerConnectionRef.current) {
+        const stats = await getCallStats(peerConnectionRef.current)
+        setCallQuality(stats)
+      }
+    }, 2000)
   }
 
   // Format call time
@@ -413,89 +188,12 @@ export default function VideoCallPage() {
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
   }
 
-  // Handle sending a message
-  const handleSendMessage = (e) => {
-    e.preventDefault()
-
-    if (!message.trim() || !callId) return
-
-    // Add message to local state
-    const newMessage = {
-      sender: user?.uid,
-      content: message,
-      timestamp: new Date().toISOString(),
-    }
-
-    setMessages([...messages, newMessage])
-    setMessage("")
-
-    // Add message to Firestore
-    if (callDocRef.current) {
-      updateDoc(callDocRef.current, {
-        messages: [...messages, newMessage],
-      }).catch(console.error)
-    }
-  }
-
   // Handle ending the call
-  const handleEndCall = () => {
-    endCall()
-    router.push("/dashboard/messages")
-  }
-
-  // End call function
-  const endCall = async () => {
-    // Stop media tracks
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop())
-    }
-
-    // Close peer connection
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close()
-    }
-
-    // Update call status in Firestore
+  const handleEndCall = async () => {
     if (callId) {
-      try {
-        // Get the call document to check if it has a conversationId
-        const callDoc = await getDoc(doc(db, "calls", callId))
-        const callData = callDoc.exists() ? callDoc.data() : null
-
-        await updateDoc(doc(db, "calls", callId), {
-          status: "ended",
-          endedAt: serverTimestamp(),
-          duration: callTime,
-        })
-
-        // Add call status message to conversation if this call was initiated from a chat
-        if (callData && callData.conversationId) {
-          await addCallStatusMessage(callData.conversationId, {
-            type: "video",
-            status: "ended",
-            initiator: callData.initiator,
-            duration: callTime,
-            participants: callData.participants,
-          })
-        }
-
-        // Remove active call reference
-        if (isIncomingCall) {
-          await deleteDoc(doc(db, "activeCall", user.uid))
-        } else {
-          await deleteDoc(doc(db, "activeCall", params.id))
-        }
-      } catch (error) {
-        console.error("Error ending call:", error)
-      }
+      await endCall(callId)
+      handleCallEnded()
     }
-
-    // Clear timer
-    if (callTimerRef.current) {
-      clearInterval(callTimerRef.current)
-    }
-
-    setCallStatus("ended")
   }
 
   // Handle call ended
@@ -510,9 +208,12 @@ export default function VideoCallPage() {
       peerConnectionRef.current.close()
     }
 
-    // Clear timer
+    // Clear timers
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current)
+    }
+    if (statsIntervalRef.current) {
+      clearInterval(statsIntervalRef.current)
     }
 
     setCallStatus("ended")
@@ -529,7 +230,6 @@ export default function VideoCallPage() {
       const audioTracks = localStreamRef.current.getAudioTracks()
       audioTracks.forEach((track) => {
         track.enabled = !track.enabled
-        console.log(`Audio track ${track.label} is now ${track.enabled ? "enabled" : "disabled"}`)
       })
       setIsMuted(!isMuted)
     }
@@ -541,7 +241,6 @@ export default function VideoCallPage() {
       const videoTracks = localStreamRef.current.getVideoTracks()
       videoTracks.forEach((track) => {
         track.enabled = !track.enabled
-        console.log(`Video track ${track.label} is now ${track.enabled ? "enabled" : "disabled"}`)
       })
       setIsVideoOn(!isVideoOn)
     }
@@ -549,12 +248,9 @@ export default function VideoCallPage() {
 
   return (
     <div className="h-screen w-full bg-graphite text-white">
-      {/* Ringback tone */}
-      <audio ref={audioRef} src="/sounds/ringback-tone.mp3" loop />
-
       {/* Main video area */}
       <div className="relative h-full w-full">
-        {/* Doctor's video (full screen) */}
+        {/* Remote video (full screen) */}
         <div className="absolute inset-0 flex items-center justify-center bg-graphite">
           {doctorInfo && (
             <div className="flex h-full w-full flex-col items-center justify-center">
@@ -569,7 +265,7 @@ export default function VideoCallPage() {
               ) : callStatus === "ended" ? (
                 <div className="text-center">
                   <div className="mb-4 text-2xl">Call Ended</div>
-                  <div>Redirecting to messages...</div>
+                  <div>Redirecting to chat...</div>
                 </div>
               ) : (
                 <div className="relative h-full w-full bg-graphite">
@@ -592,7 +288,7 @@ export default function VideoCallPage() {
           )}
         </div>
 
-        {/* Patient's video (picture-in-picture) */}
+        {/* Local video (picture-in-picture) */}
         <div className="absolute bottom-24 right-4 h-40 w-60 overflow-hidden rounded-lg border-2 border-white bg-black shadow-lg md:h-48 md:w-72">
           {/* Local video */}
           <div className="h-full w-full bg-black">
@@ -638,60 +334,16 @@ export default function VideoCallPage() {
           </div>
         </div>
 
-        {/* Chat sidebar */}
-        {showChat && (
-          <div className="absolute bottom-0 right-0 top-0 w-80 bg-white text-graphite">
-            <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b border-pale-stone p-3">
-                <h3 className="font-medium">Chat</h3>
-                <button
-                  onClick={() => setShowChat(false)}
-                  className="rounded-full p-1 text-drift-gray hover:bg-pale-stone"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-3">
-                {messages.length > 0 ? (
-                  <div className="space-y-3">
-                    {messages.map((msg, index) => (
-                      <div key={index} className={`flex ${msg.sender === user?.uid ? "justify-end" : "justify-start"}`}>
-                        <div
-                          className={`max-w-[80%] rounded-lg p-2 ${
-                            msg.sender === user?.uid ? "bg-soft-amber text-white" : "bg-pale-stone text-graphite"
-                          }`}
-                        >
-                          <p className="text-sm">{msg.content}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <p className="text-center text-sm text-drift-gray">No messages yet. Start the conversation!</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-pale-stone p-3">
-                <form onSubmit={handleSendMessage} className="flex">
-                  <input
-                    type="text"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    className="flex-1 rounded-l-md border border-earth-beige bg-white py-2 px-3 text-graphite placeholder:text-drift-gray/60 focus:border-soft-amber focus:outline-none focus:ring-1 focus:ring-soft-amber"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!message.trim()}
-                    className="rounded-r-md bg-soft-amber px-3 py-2 text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
-                  >
-                    Send
-                  </button>
-                </form>
-              </div>
+        {/* Call quality indicator */}
+        {callQuality && (
+          <div className="absolute top-4 right-4 rounded-lg bg-black/50 px-3 py-1 text-sm">
+            <div className="flex items-center space-x-2">
+              <div className={`h-2 w-2 rounded-full ${callQuality.videoPacketsLost < 5 ? "bg-green-500" : "bg-red-500"}`} />
+              <span>Video: {callQuality.videoPacketsLost < 5 ? "Good" : "Poor"}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className={`h-2 w-2 rounded-full ${callQuality.audioPacketsLost < 5 ? "bg-green-500" : "bg-red-500"}`} />
+              <span>Audio: {callQuality.audioPacketsLost < 5 ? "Good" : "Poor"}</span>
             </div>
           </div>
         )}

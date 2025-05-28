@@ -9,7 +9,15 @@ import { Loader2, Save } from "lucide-react"
 
 export default function InformationPagesAdmin() {
   const { user } = useAuth()
-  const [pageContent, setPageContent] = useState(null)
+  const [pageContent, setPageContent] = useState({
+    about: { title: "", subtitle: "", content: "", imageUrl: "" },
+    services: { title: "", subtitle: "", items: [] },
+    doctors: { title: "", subtitle: "", items: [] },
+    contact: { title: "", subtitle: "", address: "", phone: "", email: "", mapUrl: "" },
+    terms: { title: "", content: "", lastUpdated: "" },
+    privacy: { title: "", content: "", lastUpdated: "" },
+    lastUpdated: new Date()
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [notification, setNotification] = useState(null)
@@ -19,15 +27,11 @@ export default function InformationPagesAdmin() {
   useEffect(() => {
     async function fetchContent() {
       try {
-        // Removed the call to getInformationPageContent as the utility file is missing
-        // const content = await getInformationPageContent()
-
-        // Assuming local state update is sufficient for now or will be handled differently
-        setPageContent((prev) => ({
+        // Initialize with empty content structure
+        setPageContent(prev => ({
           ...prev,
-          lastUpdated: new Date(),
+          lastUpdated: new Date()
         }))
-
       } catch (error) {
         console.error("Error fetching information page content:", error)
         setNotification({

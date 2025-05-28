@@ -8,14 +8,25 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 
 export default function InformationPage({ params }) {
-  const [pageContent, setPageContent] = useState(null)
+  const [pageContent, setPageContent] = useState({
+    about: { title: "", subtitle: "", content: "", imageUrl: "" },
+    services: { title: "", subtitle: "", items: [] },
+    doctors: { title: "", subtitle: "", items: [] },
+    contact: { title: "", subtitle: "", address: "", phone: "", email: "", mapUrl: "" },
+    terms: { title: "", content: "", lastUpdated: "" },
+    privacy: { title: "", content: "", lastUpdated: "" }
+  })
   const [isLoading, setIsLoading] = useState(true)
   const section = params.section || "about"
 
   useEffect(() => {
     async function fetchContent() {
       try {
-        setPageContent(null)
+        // Initialize with empty content structure
+        setPageContent(prev => ({
+          ...prev,
+          [section]: { ...prev[section] }
+        }))
       } catch (error) {
         console.error("Error fetching information page content:", error)
       } finally {
@@ -24,7 +35,7 @@ export default function InformationPage({ params }) {
     }
 
     fetchContent()
-  }, [])
+  }, [section])
 
   if (isLoading) {
     return (

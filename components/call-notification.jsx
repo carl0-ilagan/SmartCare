@@ -1,198 +1,78 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { Phone, Video, X } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
-import { doc as firestoreDoc, getDoc, onSnapshot, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore"
-import { db } from "@/lib/firebase"
-import { addCallStatusMessage } from "@/lib/message-utils"
+import { useRouter } from 'next/navigation';
+import { useCall } from '@/contexts/call-context';
+import { Phone, Video, X } from 'lucide-react';
 
 export default function CallNotification() {
-  const router = useRouter()
-  const { user } = useAuth()
-  const [incomingCall, setIncomingCall] = useState(null)
-  const [callerInfo, setCallerInfo] = useState(null)
-  const [isRinging, setIsRinging] = useState(false)
-  const audioRef = useRef(null)
+  const router = useRouter();
+  const { incomingCall, answerCall, rejectCall } = useCall();
 
-  // Listen for incoming calls
-  useEffect(() => {
-    if (!user) return
+  if (!incomingCall) return null;
 
-    const unsubscribe = onSnapshot(firestoreDoc(db, "activeCall", user.uid), async (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        const callData = docSnapshot.data()
-
-        // Only process if this is an incoming call (not initiated by the current user)
-        if (callData.initiator !== user.uid) {
-          setIncomingCall(callData)
-          setIsRinging(true)
-
-          // Get caller information
-          try {
-            const callerDoc = await getDoc(firestoreDoc(db, "users", callData.initiator))
-            if (callerDoc.exists()) {
-              setCallerInfo({
-                id: callerDoc.id,
-                ...callerDoc.data(),
-              })
-            }
-          } catch (error) {
-            console.error("Error fetching caller info:", error)
-          }
-        }
-      } else {
-        // No active call, clear state
-        setIncomingCall(null)
-        setCallerInfo(null)
-        setIsRinging(false)
-      }
-    })
-
-    return () => unsubscribe()
-  }, [user])
-
-  // Play ringing sound
-  useEffect(() => {
-    if (isRinging && audioRef.current) {
-      audioRef.current.volume = 0.7
-      audioRef.current.currentTime = 0
-      audioRef.current.play().catch((err) => console.error("Error playing sound:", err))
-    } else if (!isRinging && audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
-    }
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current.currentTime = 0
-      }
-    }
-  }, [isRinging])
-
-  // Accept call
-  const handleAcceptCall = async () => {
-    if (!incomingCall || !user) return
-
+  const handleAnswer = async () => {
     try {
-      setIsRinging(false)
-
-      // Update call status to accepted
-      await updateDoc(firestoreDoc(db, "calls", incomingCall.callId), {
-        status: "accepted",
-        acceptedAt: serverTimestamp(),
-      })
-
-      // Remove active call reference to dismiss notification
-      await deleteDoc(firestoreDoc(db, "activeCall", user.uid))
-
-      // Navigate to the appropriate call page
-      if (user.role === "doctor") {
-        if (incomingCall.type === "video") {
-          router.push(`/doctor/calls/video/${incomingCall.initiator}`)
-        } else {
-          router.push(`/doctor/calls/voice/${incomingCall.initiator}`)
-        }
-      } else {
-        if (incomingCall.type === "video") {
-          router.push(`/dashboard/calls/video/${incomingCall.initiator}`)
-        } else {
-          router.push(`/dashboard/calls/voice/${incomingCall.initiator}`)
-        }
-      }
+      await answerCall(incomingCall.id);
+      router.push(`/dashboard/calls/${incomingCall.type}/${incomingCall.id}`);
     } catch (error) {
-      console.error("Error accepting call:", error)
+      console.error('Error answering call:', error);
     }
-  }
+  };
 
-  // Reject call
-  const handleRejectCall = async () => {
-    if (!incomingCall || !user) return
-
+  const handleReject = async () => {
     try {
-      setIsRinging(false)
-
-      // Update call status to rejected
-      await updateDoc(firestoreDoc(db, "calls", incomingCall.callId), {
-        status: "rejected",
-        endedAt: serverTimestamp(),
-      })
-
-      // Add call status message to conversation if this is a call from a chat
-      if (incomingCall.conversationId) {
-        await addCallStatusMessage(incomingCall.conversationId, {
-          type: incomingCall.type,
-          status: "rejected",
-          initiator: incomingCall.initiator,
-          duration: 0,
-          participants: incomingCall.participants,
-        })
-      }
-
-      // Remove active call reference
-      await deleteDoc(firestoreDoc(db, "activeCall", user.uid))
-
-      // Clear state
-      setIncomingCall(null)
-      setCallerInfo(null)
+      await rejectCall(incomingCall.id);
     } catch (error) {
-      console.error("Error rejecting call:", error)
+      console.error('Error rejecting call:', error);
     }
-  }
-
-  // If no incoming call, don't render anything
-  if (!incomingCall || !callerInfo) return null
+  };
 
   return (
-    <>
-      {/* Ringing sound */}
-      <audio ref={audioRef} src="/sounds/phone-ringing.mp3" loop />
+    <div className="fixed top-4 right-4 z-50">
+      <div className="bg-white rounded-lg shadow-lg p-4 w-80">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Incoming {incomingCall.type === 'video' ? 'Video' : 'Voice'} Call
+          </h3>
+          <button
+            onClick={handleReject}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="w-full max-w-md animate-pulse-slow rounded-lg bg-white p-6 shadow-lg">
-          <div className="flex flex-col items-center">
-            <div className="mb-4 text-xl font-semibold text-graphite">
-              Incoming {incomingCall.type === "video" ? "Video" : "Voice"} Call
-            </div>
-
-            <div className="mb-6 flex flex-col items-center">
-              <div className="mb-2 h-20 w-20 overflow-hidden rounded-full bg-pale-stone">
-                {callerInfo.photoURL ? (
-                  <img
-                    src={callerInfo.photoURL || "/placeholder.svg"}
-                    alt={callerInfo.displayName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-soft-amber text-white">
-                    {callerInfo.displayName?.charAt(0) || "U"}
-                  </div>
-                )}
-              </div>
-              <div className="text-lg font-medium text-graphite">{callerInfo.displayName}</div>
-              {callerInfo.specialty && <div className="text-sm text-drift-gray">{callerInfo.specialty}</div>}
-            </div>
-
-            <div className="flex w-full justify-center space-x-4">
-              <button
-                onClick={handleRejectCall}
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-
-              <button
-                onClick={handleAcceptCall}
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600"
-              >
-                {incomingCall.type === "video" ? <Video className="h-6 w-6" /> : <Phone className="h-6 w-6" />}
-              </button>
-            </div>
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+            {incomingCall.type === 'video' ? (
+              <Video className="w-6 h-6 text-gray-600" />
+            ) : (
+              <Phone className="w-6 h-6 text-gray-600" />
+            )}
+          </div>
+          <div>
+            <p className="font-medium text-gray-900">{incomingCall.callerName}</p>
+            <p className="text-sm text-gray-500">
+              {incomingCall.type === 'video' ? 'Video Call' : 'Voice Call'}
+            </p>
           </div>
         </div>
+
+        <div className="flex space-x-2">
+          <button
+            onClick={handleAnswer}
+            className="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors"
+          >
+            Answer
+          </button>
+          <button
+            onClick={handleReject}
+            className="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Decline
+          </button>
+        </div>
       </div>
-    </>
-  )
+    </div>
+  );
 }

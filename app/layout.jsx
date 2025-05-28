@@ -1,6 +1,7 @@
 import { Manrope } from "next/font/google"
 import "@/app/globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
+import { CallProvider } from "@/contexts/call-context"
 import { SuspiciousLoginAlert } from "@/components/suspicious-login-alert"
 
 
@@ -26,8 +27,10 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-screen bg-pale-stone font-manrope antialiased">
         <AuthProvider>
-          <SuspiciousLoginAlert />
-          {children}
+          <CallProvider>
+            <SuspiciousLoginAlert />
+            {children}
+          </CallProvider>
         </AuthProvider>
       </body>
     </html>

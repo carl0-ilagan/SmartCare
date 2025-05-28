@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { Mic, MicOff, Phone, User, MessageSquare, Volume2, VolumeX, X } from "lucide-react"
+import { Mic, MicOff, Phone, User, MessageSquare, Volume2, VolumeX, X, PhoneOff } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useCall } from "@/contexts/call-context"
 import {
@@ -47,6 +47,7 @@ export default function VoiceCallPage() {
   const [isIncomingCall, setIsIncomingCall] = useState(false)
   const [callQuality, setCallQuality] = useState(null)
   const [error, setError] = useState(null)
+  const [permissionsGranted, setPermissionsGranted] = useState(false)
 
   // References for WebRTC
   const audioRef = useRef(null)
@@ -55,6 +56,7 @@ export default function VoiceCallPage() {
   const callDocRef = useRef(null)
   const callTimerRef = useRef(null)
   const statsIntervalRef = useRef(null)
+  const remoteAudioRef = useRef(null)
 
   // Fetch doctor information
   useEffect(() => {
@@ -98,6 +100,7 @@ export default function VoiceCallPage() {
           audio: true,
         })
         localStreamRef.current = stream
+        setPermissionsGranted(true)
 
         // Set up audio output
         if (audioRef.current) {
@@ -115,8 +118,8 @@ export default function VoiceCallPage() {
 
         // Handle remote stream
         peerConnection.ontrack = (event) => {
-          if (audioRef.current && event.streams[0]) {
-            audioRef.current.srcObject = event.streams[0]
+          if (remoteAudioRef.current && event.streams[0]) {
+            remoteAudioRef.current.srcObject = event.streams[0]
           }
         }
 
@@ -189,7 +192,7 @@ export default function VoiceCallPage() {
       }
       stopRingback()
     }
-  }, [user, params.id, doctorInfo, startRingback, stopRingback])
+  }, [user, params.id, doctorInfo, startRingback, stopRingback, permissionsGranted])
 
   // Start call timer
   const startCallTimer = () => {
@@ -286,18 +289,18 @@ export default function VoiceCallPage() {
 
   // Toggle speaker
   const toggleSpeaker = () => {
-    if (audioRef.current) {
-      audioRef.current.muted = !audioRef.current.muted
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.muted = !remoteAudioRef.current.muted
       setIsSpeakerOn(!isSpeakerOn)
     }
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="p-6 bg-white rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-red-600 mb-2">Error</h2>
-          <p className="text-gray-600">{error}</p>
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-900 text-white">
+        <div className="p-6 bg-gray-800 rounded-lg shadow-xl">
+          <h2 className="text-xl font-semibold text-red-500 mb-2">Error</h2>
+          <p className="text-gray-300">{error}</p>
           <button
             onClick={() => router.push('/dashboard/messages')}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -310,94 +313,71 @@ export default function VoiceCallPage() {
   }
 
   return (
-    <div className="h-screen w-full bg-graphite text-white">
-      {/* Hidden audio element for remote audio */}
-      <audio ref={audioRef} autoPlay playsInline />
-
-      {/* Main call area */}
-      <div className="relative h-full w-full">
-        {/* Call status and info */}
-        <div className="absolute inset-0 flex items-center justify-center bg-graphite">
-          {doctorInfo && (
-            <div className="flex h-full w-full flex-col items-center justify-center">
-              {callStatus === "connecting" ? (
-                <div className="text-center">
-                  <div className="mb-4 text-2xl">
-                    {isIncomingCall ? "Connecting to" : "Calling"} {doctorInfo.displayName}...
-                  </div>
-                  <div className="mx-auto h-16 w-16 animate-spin rounded-full border-4 border-soft-amber border-t-transparent"></div>
-                  {!isIncomingCall && <div className="mt-4 animate-pulse-slow">Ringing...</div>}
-                </div>
-              ) : callStatus === "ended" ? (
-                <div className="text-center">
-                  <div className="mb-4 text-2xl">Call Ended</div>
-                  <div>Redirecting to chat...</div>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <div className="mb-8 h-32 w-32 overflow-hidden rounded-full bg-pale-stone">
-                    {doctorInfo.photoURL ? (
-                      <img
-                        src={doctorInfo.photoURL}
-                        alt={doctorInfo.displayName}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-soft-amber text-white">
-                        <User className="h-16 w-16" />
-                      </div>
-                    )}
-                  </div>
-                  <h2 className="text-2xl font-bold">{doctorInfo.displayName}</h2>
-                  <p className="text-soft-amber">{doctorInfo.specialty}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Call info and controls */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-          <div className="mx-auto flex max-w-md flex-col items-center">
-            {/* Call duration */}
-            <div className="mb-2 rounded-full bg-black/50 px-4 py-1">
-              <span>{formatCallTime()}</span>
-            </div>
-
-            {/* Call controls */}
-            <div className="flex items-center space-x-4">
-              <button onClick={toggleMute} className={`rounded-full p-3 ${isMuted ? "bg-red-500" : "bg-white/20"}`}>
-                {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
-              </button>
-
-              <button onClick={handleEndCall} className="rounded-full bg-red-500 p-4">
-                <Phone className="h-6 w-6 rotate-135" />
-              </button>
-
-              <button onClick={toggleSpeaker} className={`rounded-full p-3 ${!isSpeakerOn ? "bg-red-500" : "bg-white/20"}`}>
-                {isSpeakerOn ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
-              </button>
-
-              <button
-                onClick={() => setShowChat(!showChat)}
-                className={`rounded-full p-3 ${showChat ? "bg-soft-amber" : "bg-white/20"}`}
-              >
-                <MessageSquare className="h-6 w-6" />
-              </button>
-            </div>
+    <div className="fixed inset-0 bg-gray-900">
+      {/* Call Status Overlay */}
+      {callStatus === 'connecting' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="text-white text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-4"></div>
+            <p className="text-lg">Connecting...</p>
           </div>
         </div>
+      )}
 
-        {/* Call quality indicator */}
-        {callQuality && (
-          <div className="absolute top-4 right-4 rounded-lg bg-black/50 px-3 py-1 text-sm">
-            <div className="flex items-center space-x-2">
-              <div className={`h-2 w-2 rounded-full ${callQuality.audioPacketsLost < 5 ? "bg-green-500" : "bg-red-500"}`} />
-              <span>Audio: {callQuality.audioPacketsLost < 5 ? "Good" : "Poor"}</span>
-            </div>
-          </div>
-        )}
+      {/* Call Info */}
+      <div className="absolute top-4 left-4 text-white">
+        <h2 className="text-xl font-semibold">{doctorInfo?.displayName || 'Connecting...'}</h2>
+        <p className="text-sm opacity-75">
+          {callStatus === 'connected' ? formatCallTime() : 'Connecting...'}
+        </p>
       </div>
+
+      {/* Call Quality Indicator */}
+      <div className="absolute top-4 right-4">
+        <div className={`px-2 py-1 rounded text-sm ${
+          callQuality === 'good' ? 'bg-green-500' :
+          callQuality === 'poor' ? 'bg-red-500' :
+          'bg-yellow-500'
+        } text-white`}>
+          {callQuality === 'good' ? 'Good' :
+           callQuality === 'poor' ? 'Poor' :
+           'Fair'} Connection
+        </div>
+      </div>
+
+      {/* Remote Audio */}
+      <audio ref={remoteAudioRef} autoPlay playsInline />
+
+      {/* Call Controls */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black to-transparent">
+        <div className="flex justify-center space-x-6">
+          <button
+            onClick={toggleMute}
+            className={`p-4 rounded-full ${
+              isMuted ? 'bg-red-500' : 'bg-gray-700'
+            } text-white hover:bg-opacity-80 transition-colors`}
+          >
+            {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
+          </button>
+
+          <button
+            onClick={toggleSpeaker}
+            className={`p-4 rounded-full ${
+              !isSpeakerOn ? 'bg-red-500' : 'bg-gray-700'
+            } text-white hover:bg-opacity-80 transition-colors`}
+          >
+            {isSpeakerOn ? <Volume2 size={24} /> : <VolumeX size={24} />}
+          </button>
+
+          <button
+            onClick={handleEndCall}
+            className="p-4 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+          >
+            <PhoneOff size={24} />
+          </button>
+        </div>
+      </div>
+
       {/* Call Notification */}
       <CallNotification />
     </div>

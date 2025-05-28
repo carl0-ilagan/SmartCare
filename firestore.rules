@@ -83,52 +83,45 @@ service cloud.firestore {
       }
     }
 
-    // --- SESSIONS ---
-    match /sessions/{sessionId} {
-      allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.userId ||
-        isAdmin()
-      );
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
-      allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow delete: if isSignedIn() && (
-        request.auth.uid == resource.data.userId ||
-        isAdmin()
-      );
-    }
-
     // --- CALLS & WEBRTC SIGNALING ---
     match /calls/{callId} {
-      allow read: if isSignedIn() && (
+      // Allow read if user is either the caller or receiver
+      allow read: if request.auth != null && (
         request.auth.uid == resource.data.callerId ||
         request.auth.uid == resource.data.receiverId
       );
-      allow create: if isSignedIn() && (
+
+      // Allow create if user is either the caller or receiver in the new document
+      allow create: if request.auth != null && (
         request.auth.uid == request.resource.data.callerId ||
         request.auth.uid == request.resource.data.receiverId
       ) && (
-        request.resource.data.keys().hasAll(['callerId', 'receiverId', 'type', 'status']) &&
-        request.resource.data.type in ['video', 'voice'] &&
-        request.resource.data.status == 'initiated'
+        // Validate required fields
+        request.resource.data.keys().hasAll(['callerId', 'receiverId', 'type', 'status', 'initiatorInfo']) &&
+        // Validate call type
+        request.resource.data.type in ['voice', 'video'] &&
+        // Validate initial status
+        request.resource.data.status == 'ringing'
       );
-      allow update: if isSignedIn() && (
+
+      // Allow update if user is involved in the call
+      allow update: if request.auth != null && (
         request.auth.uid == resource.data.callerId ||
         request.auth.uid == resource.data.receiverId
       ) && (
+        // Validate status transitions
         (
-          resource.data.status == 'initiated' && 
-          request.resource.data.status in ['connected', 'rejected', 'ended']
-        ) ||
-        (
-          resource.data.status == 'connected' && 
-          request.resource.data.status == 'ended'
+          // Only allow valid status transitions
+          (resource.data.status == 'ringing' && request.resource.data.status in ['accepted', 'rejected', 'ended']) ||
+          (resource.data.status == 'accepted' && request.resource.data.status == 'ended') ||
+          (resource.data.status == 'rejected' && request.resource.data.status == 'ended')
         )
       );
     }
 
     // --- ICE CANDIDATES SUBCOLLECTION ---
     match /calls/{callId}/candidates/{candidateId} {
-      allow read, write: if isSignedIn() && (
+      allow read, write: if request.auth != null && (
         request.auth.uid == get(/databases/$(database)/documents/calls/$(callId)).data.callerId ||
         request.auth.uid == get(/databases/$(database)/documents/calls/$(callId)).data.receiverId
       );
@@ -136,19 +129,17 @@ service cloud.firestore {
 
     // --- CALL HISTORY ---
     match /callHistory/{historyId} {
-      allow read: if isSignedIn() && (
+      allow read: if request.auth != null && (
         request.auth.uid == resource.data.callerId ||
         request.auth.uid == resource.data.receiverId
       );
-      allow create: if isSignedIn() && (
+      
+      allow create: if request.auth != null && (
         request.auth.uid == request.resource.data.callerId ||
         request.auth.uid == request.resource.data.receiverId
-      ) && (
-        request.resource.data.keys().hasAll(['callerId', 'receiverId', 'type', 'status', 'startedAt']) &&
-        request.resource.data.type in ['video', 'voice'] &&
-        request.resource.data.status in ['connected', 'rejected', 'ended']
       );
-      allow update: if isSignedIn() && (
+      
+      allow update: if request.auth != null && (
         request.auth.uid == resource.data.callerId ||
         request.auth.uid == resource.data.receiverId
       );
@@ -156,12 +147,38 @@ service cloud.firestore {
 
     // --- ACTIVE CALL STATUS ---
     match /activeCall/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == userId;
-      allow create, update: if isSignedIn() && (
+      // Allow read for anyone authenticated
+      allow read: if request.auth != null;
+      
+      // Allow write if user is involved in the call
+      allow write: if request.auth != null && (
+        // User can update their own status
         request.auth.uid == userId ||
-        request.resource.data.callerId == request.auth.uid ||
-        request.resource.data.receiverId == request.auth.uid
+        // Or if they're in a call with this user
+        (
+          request.resource.data.keys().hasAll(['callId', 'type', 'status', 'initiatorInfo']) &&
+          (
+            request.resource.data.initiatorInfo.userId == request.auth.uid ||
+            request.resource.data.receiverId == request.auth.uid
+          )
+        )
+      );
+      
+      // Allow create/update with validation
+      allow create, update: if request.auth != null && (
+        // User can create/update their own status
+        request.auth.uid == userId ||
+        // Or if they're in a call with this user
+        (
+          request.resource.data.keys().hasAll(['callId', 'type', 'status', 'initiatorInfo']) &&
+          (
+            request.resource.data.initiatorInfo.userId == request.auth.uid ||
+            request.resource.data.receiverId == request.auth.uid
+          )
+        )
+      ) && (
+        // Validate status
+        request.resource.data.status in ['ringing', 'accepted', 'rejected', 'ended']
       );
     }
 
@@ -241,14 +258,14 @@ service cloud.firestore {
       allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
     }
 
-    // --- ACTIVITY LOGS ---
-    match /activityLogs/{logId} {
-      allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.userId ||
-        isAdmin()
-      );
-      allow create: if isSignedIn();
-      allow update, delete: if isAdmin();
+    // --- LOGS ---
+    match /logs/{logId} {
+      // Allow any authenticated user to create logs
+      allow create: if request.auth != null;
+      
+      // Only admins can read all logs
+      allow read: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     // --- SYSTEM COLLECTION (for welcome content, landing page, etc.) ---
@@ -275,31 +292,40 @@ service cloud.firestore {
       allow write: if true; // For now, allow all writes to this collection
     }
 
-    // --- SUSPICIOUS LOGINS ---
+    // Sessions collection
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() && request.auth.uid == request.resource.data.userId;
+      allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
+    
+    // Suspicious logins collection
     match /suspiciousLogins/{loginId} {
       allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
       allow create: if isSignedIn();
       allow update: if isSignedIn() && request.auth.uid == resource.data.userId;
       allow delete: if isAdmin();
     }
-
-    // --- REJECTED LOGINS ---
+    
+    // Failed logins collection
+    match /failedLogins/{loginId} {
+      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
+      allow create: if true; // Allow anonymous creation for failed login tracking
+      allow update, delete: if isAdmin();
+    }
+    
+    // Rejected logins collection
     match /rejectedLogins/{loginId} {
       allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
       allow create: if isSignedIn();
       allow update, delete: if isAdmin();
     }
 
-    // --- FAILED LOGINS ---
-    match /failedLogins/{loginId} {
-      allow read: if isSignedIn() && (request.auth.uid == resource.data.userId || isAdmin());
-      allow create: if true; // Allow anonymous creation for failed login tracking
-      allow update, delete: if isAdmin();
-    }
-
     // --- ADMIN ACCESS TO EVERYTHING ---
     match /{document=**} {
-      allow read, write: if isSignedIn() && isAdmin();
+      allow read, write: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   }
 }

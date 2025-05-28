@@ -24,10 +24,16 @@ export default function Chat({ conversation, messages, onSendMessage }) {
       }
 
       const callId = await initiateCall(receiverId, type);
-      router.push(`/dashboard/calls/${type}/${callId}`);
+      
+      // Navigate to the appropriate call page based on user role
+      if (user.role === 'patient') {
+        router.push(`/dashboard/calls/${type}/${callId}`);
+      } else {
+        router.push(`/doctor/calls/${type}/${callId}`);
+      }
     } catch (error) {
       console.error('Error starting call:', error);
-      // You might want to show an error message to the user here
+      alert('Could not start call. Please try again.');
     } finally {
       setIsCalling(false);
     }
@@ -65,8 +71,9 @@ export default function Chat({ conversation, messages, onSendMessage }) {
             className={`p-2 rounded-full ${
               isCalling 
                 ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-500 hover:bg-blue-600'
+                : 'bg-soft-amber hover:bg-deep-amber'
             } text-white transition-colors`}
+            title="Voice Call"
           >
             <Phone size={20} />
           </button>
@@ -76,8 +83,9 @@ export default function Chat({ conversation, messages, onSendMessage }) {
             className={`p-2 rounded-full ${
               isCalling 
                 ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-500 hover:bg-blue-600'
+                : 'bg-soft-amber hover:bg-deep-amber'
             } text-white transition-colors`}
+            title="Video Call"
           >
             <Video size={20} />
           </button>

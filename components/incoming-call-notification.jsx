@@ -1,45 +1,44 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Phone, Video, X, User } from "lucide-react"
+import { Phone, Video, X } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
-import { listenForIncomingCalls, acceptCall, declineCall } from "@/lib/call-service"
+import { useCall } from "@/contexts/call-context"
 import { useRouter } from "next/navigation"
 
 export default function IncomingCallNotification() {
   const { user } = useAuth()
-  const [incomingCall, setIncomingCall] = useState(null)
+  const { incomingCall, callerInfo, answerCall, rejectCall } = useCall()
   const router = useRouter()
   const ringtoneRef = useRef(null)
 
   useEffect(() => {
-    if (!user) return
+    // Play ringtone when there's an incoming call
+    if (incomingCall && ringtoneRef.current) {
+      ringtoneRef.current.play().catch((error) => {
+        console.error("Error playing ringtone:", error)
+      })
+    } else if (ringtoneRef.current) {
+      ringtoneRef.current.pause()
+      ringtoneRef.current.currentTime = 0
+    }
 
-    // Listen for incoming calls
-    const unsubscribe = listenForIncomingCalls(user.uid, (call) => {
-      setIncomingCall(call)
-
-      // Play ringtone if there's an incoming call
-      if (call && ringtoneRef.current) {
-        ringtoneRef.current.play().catch((error) => {
-          console.error("Error playing ringtone:", error)
-        })
-      } else if (ringtoneRef.current) {
-        ringtoneRef.current.pause()
-        ringtoneRef.current.currentTime = 0
-      }
-    })
+    // Auto-reject call after 30 seconds if not answered
+    let timeoutId
+    if (incomingCall) {
+      timeoutId = setTimeout(() => {
+        handleReject()
+      }, 30000)
+    }
 
     return () => {
-      unsubscribe()
-
-      // Stop ringtone on unmount
+      if (timeoutId) clearTimeout(timeoutId)
       if (ringtoneRef.current) {
         ringtoneRef.current.pause()
         ringtoneRef.current.currentTime = 0
       }
     }
-  }, [user])
+  }, [incomingCall])
 
   const handleAccept = async () => {
     if (!incomingCall) return
@@ -52,23 +51,21 @@ export default function IncomingCallNotification() {
       }
 
       // Accept the call
-      await acceptCall(incomingCall.id)
+      await answerCall(incomingCall.callId)
 
-      // Redirect to the appropriate call page
-      const callType = incomingCall.callType
-      const callerId = incomingCall.callerId
-
-      if (callType === "video") {
-        router.push(`/dashboard/calls/video/${callerId}?callId=${incomingCall.id}`)
+      // Navigate to the appropriate call page based on user role
+      if (user.role === 'patient') {
+        router.push(`/dashboard/calls/${incomingCall.type}/${incomingCall.callId}`)
       } else {
-        router.push(`/dashboard/calls/voice/${callerId}?callId=${incomingCall.id}`)
+        router.push(`/doctor/calls/${incomingCall.type}/${incomingCall.callId}`)
       }
     } catch (error) {
       console.error("Error accepting call:", error)
+      alert("Could not accept call. Please try again.")
     }
   }
 
-  const handleDecline = async () => {
+  const handleReject = async () => {
     if (!incomingCall) return
 
     try {
@@ -78,68 +75,65 @@ export default function IncomingCallNotification() {
         ringtoneRef.current.currentTime = 0
       }
 
-      // Decline the call
-      await declineCall(incomingCall.id)
-      setIncomingCall(null)
+      // Reject the call
+      await rejectCall(incomingCall.callId)
     } catch (error) {
-      console.error("Error declining call:", error)
+      console.error("Error rejecting call:", error)
+      alert("Could not reject call. Please try again.")
     }
   }
 
-  if (!incomingCall) return null
+  if (!incomingCall || !callerInfo) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-        <div className="flex flex-col items-center">
-          <div className="mb-4 h-20 w-20 overflow-hidden rounded-full bg-pale-stone">
-            {incomingCall.callerPhoto ? (
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl animate-bounce-slow">
+        {/* Ringtone */}
+        <audio ref={ringtoneRef} src="/sounds/ringtone.mp3" loop />
+        
+        {/* Caller Info */}
+        <div className="mb-6 flex flex-col items-center">
+          <div className="relative mb-4 h-24 w-24 overflow-hidden rounded-full">
+            {callerInfo.photoURL ? (
               <img
-                src={incomingCall.callerPhoto || "/placeholder.svg"}
-                alt={incomingCall.callerName}
+                src={callerInfo.photoURL}
+                alt={callerInfo.displayName}
                 className="h-full w-full object-cover"
               />
             ) : (
-              <User className="h-full w-full p-4 text-drift-gray" />
+              <div className="flex h-full w-full items-center justify-center bg-soft-amber text-white">
+                <span className="text-2xl font-medium">
+                  {callerInfo.displayName?.charAt(0) || "U"}
+                </span>
+              </div>
             )}
           </div>
+          <h2 className="text-xl font-semibold text-gray-900">{callerInfo.displayName}</h2>
+          <p className="text-sm text-gray-500">
+            Incoming {incomingCall.type === "video" ? "Video" : "Voice"} Call
+          </p>
+        </div>
 
-          <h2 className="text-xl font-bold text-graphite">{incomingCall.callerName}</h2>
-
-          <div className="mt-2 flex items-center text-soft-amber">
-            {incomingCall.callType === "video" ? (
-              <>
-                <Video className="mr-2 h-5 w-5" />
-                <span>Incoming Video Call</span>
-              </>
+        {/* Call Controls */}
+        <div className="flex justify-center space-x-4">
+          <button
+            onClick={handleReject}
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500 text-white transition hover:bg-red-600"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <button
+            onClick={handleAccept}
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white transition hover:bg-green-600"
+          >
+            {incomingCall.type === "video" ? (
+              <Video className="h-6 w-6" />
             ) : (
-              <>
-                <Phone className="mr-2 h-5 w-5" />
-                <span>Incoming Voice Call</span>
-              </>
+              <Phone className="h-6 w-6" />
             )}
-          </div>
-
-          <div className="mt-6 flex w-full justify-center space-x-4">
-            <button
-              onClick={handleDecline}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
-            >
-              <X className="h-6 w-6" />
-            </button>
-
-            <button
-              onClick={handleAccept}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600"
-            >
-              {incomingCall.callType === "video" ? <Video className="h-6 w-6" /> : <Phone className="h-6 w-6" />}
-            </button>
-          </div>
+          </button>
         </div>
       </div>
-
-      {/* Hidden audio element for ringtone */}
-      <audio ref={ringtoneRef} src="/sounds/ringtone.mp3" loop className="hidden" />
     </div>
   )
 }

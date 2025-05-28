@@ -1,10 +1,10 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './auth-context';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { createCall, endCall } from '@/lib/webrtc';
+import { doc, onSnapshot, collection, query, where, updateDoc, serverTimestamp, addDoc, setDoc } from 'firebase/firestore';
+import { createCall } from '@/lib/call-service';
 
 const CallContext = createContext();
 
@@ -12,126 +12,47 @@ export function CallProvider({ children }) {
   const { user } = useAuth();
   const [incomingCall, setIncomingCall] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
-  const ringtoneRef = useRef(null);
-  const ringbackRef = useRef(null);
-  const [audioLoaded, setAudioLoaded] = useState(false);
+  const [callerInfo, setCallerInfo] = useState(null);
 
-  // Initialize audio elements
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        ringtoneRef.current = new window.Audio('/sounds/ringtone.mp3');
-        ringbackRef.current = new window.Audio('/sounds/ringback.mp3');
-        
-        // Set up audio event listeners
-        const handleAudioLoad = () => setAudioLoaded(true);
-        const handleAudioError = (error) => {
-          console.error('Error loading audio:', error);
-          setAudioLoaded(false);
-        };
-
-        ringtoneRef.current.addEventListener('canplaythrough', handleAudioLoad);
-        ringbackRef.current.addEventListener('canplaythrough', handleAudioLoad);
-        ringtoneRef.current.addEventListener('error', handleAudioError);
-        ringbackRef.current.addEventListener('error', handleAudioError);
-
-        // Preload audio
-        ringtoneRef.current.load();
-        ringbackRef.current.load();
-
-        ringtoneRef.current.loop = true;
-        ringbackRef.current.loop = true;
-
-        return () => {
-          if (ringtoneRef.current) {
-            ringtoneRef.current.removeEventListener('canplaythrough', handleAudioLoad);
-            ringtoneRef.current.removeEventListener('error', handleAudioError);
-          }
-          if (ringbackRef.current) {
-            ringbackRef.current.removeEventListener('canplaythrough', handleAudioLoad);
-            ringbackRef.current.removeEventListener('error', handleAudioError);
-          }
-        };
-      } catch (error) {
-        console.error('Error initializing audio:', error);
-        setAudioLoaded(false);
-      }
-    }
-  }, []);
-
-  // Listen for incoming calls
   useEffect(() => {
     if (!user) return;
 
-    const callsQuery = query(
-      collection(db, 'calls'),
-      where('receiverId', '==', user.uid),
-      where('status', '==', 'calling')
-    );
+    // Listen for incoming calls
+    const unsubscribe = onSnapshot(doc(db, "activeCall", user.uid), async (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const callData = docSnapshot.data();
 
-    const unsubscribe = onSnapshot(callsQuery, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const callData = change.doc.data();
-          setIncomingCall({
-            id: change.doc.id,
-            ...callData,
-          });
-          playRingtone();
+        // Only process if this is an incoming call (not initiated by the current user)
+        if (callData.initiator !== user.uid) {
+          setIncomingCall(callData);
+          setCallerInfo(callData.initiatorInfo);
         }
-      });
+      } else {
+        // No active call, clear state
+        setIncomingCall(null);
+        setCallerInfo(null);
+      }
     });
 
     return () => unsubscribe();
   }, [user]);
 
-  const playRingtone = () => {
-    if (ringtoneRef.current && audioLoaded) {
-      ringtoneRef.current.play().catch(error => {
-        console.error('Error playing ringtone:', error);
-      });
-    }
-  };
+  const initiateCall = async (receiverId, type) => {
+    if (!user) throw new Error('User not authenticated');
 
-  const stopRingtone = () => {
-    if (ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current.currentTime = 0;
-    }
-  };
-
-  const startRingback = () => {
-    if (ringbackRef.current && audioLoaded) {
-      ringbackRef.current.play().catch(error => {
-        console.error('Error playing ringback:', error);
-      });
-    }
-  };
-
-  const stopRingback = () => {
-    if (ringbackRef.current) {
-      ringbackRef.current.pause();
-      ringbackRef.current.currentTime = 0;
-    }
-  };
-
-  const initiateCall = async (receiverId, callType = 'video') => {
     try {
-      // Check if receiver is available
-      const receiverQuery = query(
-        collection(db, 'calls'),
-        where('receiverId', '==', receiverId),
-        where('status', 'in', ['calling', 'connected'])
-      );
-      const receiverSnapshot = await getDocs(receiverQuery);
-      
-      if (!receiverSnapshot.empty) {
-        throw new Error('User is currently in another call');
+      // Create a new call
+      const callId = await createCall(user.uid, receiverId, type, {
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        role: user.role,
+      });
+
+      if (!callId) {
+        throw new Error('Failed to create call');
       }
 
-      const callId = await createCall(user.uid, receiverId, callType);
-      setActiveCall({ id: callId, type: callType });
-      startRingback();
+      setActiveCall(callId);
       return callId;
     } catch (error) {
       console.error('Error initiating call:', error);
@@ -141,14 +62,13 @@ export function CallProvider({ children }) {
 
   const answerCall = async (callId) => {
     try {
-      const callRef = doc(db, 'calls', callId);
-      await updateDoc(callRef, {
-        status: 'connected',
-        answeredAt: new Date().toISOString()
+      await updateDoc(doc(db, "calls", callId), {
+        status: "accepted",
+        acceptedAt: serverTimestamp(),
       });
-      stopRingtone();
-      setActiveCall({ id: callId, type: incomingCall?.type });
+
       setIncomingCall(null);
+      setActiveCall(callId);
     } catch (error) {
       console.error('Error answering call:', error);
       throw error;
@@ -157,49 +77,57 @@ export function CallProvider({ children }) {
 
   const rejectCall = async (callId) => {
     try {
-      await endCall(callId);
-      stopRingtone();
+      await updateDoc(doc(db, "calls", callId), {
+        status: "rejected",
+        rejectedAt: serverTimestamp(),
+      });
+
+      // Remove active call reference
+      await setDoc(doc(db, "activeCall", user.uid), {
+        status: "rejected",
+        rejectedAt: serverTimestamp(),
+      });
+
       setIncomingCall(null);
+      setCallerInfo(null);
     } catch (error) {
       console.error('Error rejecting call:', error);
       throw error;
     }
   };
 
-  const hangupCall = async (callId) => {
-    try {
-      await endCall(callId);
-      stopRingback();
-      setActiveCall(null);
-    } catch (error) {
-      console.error('Error hanging up call:', error);
-      throw error;
+  const endActiveCall = async () => {
+    if (activeCall) {
+      try {
+        await updateDoc(doc(db, "calls", activeCall), {
+          status: "ended",
+          endedAt: serverTimestamp(),
+        });
+
+        // Remove active call reference
+        await setDoc(doc(db, "activeCall", user.uid), {
+          status: "ended",
+          endedAt: serverTimestamp(),
+        });
+
+        setActiveCall(null);
+      } catch (error) {
+        console.error('Error ending call:', error);
+        throw error;
+      }
     }
   };
-
-  // Cleanup audio elements on unmount
-  useEffect(() => {
-    return () => {
-      if (ringtoneRef.current) {
-        ringtoneRef.current.pause();
-      }
-      if (ringbackRef.current) {
-        ringbackRef.current.pause();
-      }
-    };
-  }, []);
 
   return (
     <CallContext.Provider
       value={{
         incomingCall,
         activeCall,
+        callerInfo,
         initiateCall,
         answerCall,
         rejectCall,
-        hangupCall,
-        startRingback,
-        stopRingback
+        endActiveCall,
       }}
     >
       {children}

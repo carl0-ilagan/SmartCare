@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { getInformationPageContent } from "@/lib/content-utils"
 import { Loader2, MapPin, Phone, Mail } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -16,8 +15,7 @@ export default function InformationPage({ params }) {
   useEffect(() => {
     async function fetchContent() {
       try {
-        const content = await getInformationPageContent()
-        setPageContent(content)
+        setPageContent(null)
       } catch (error) {
         console.error("Error fetching information page content:", error)
       } finally {

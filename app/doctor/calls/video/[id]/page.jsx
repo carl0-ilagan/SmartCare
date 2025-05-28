@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { addCallStatusMessage } from "@/lib/message-utils"
+import IncomingCallNotification from "@/components/IncomingCallNotification"
 
 export default function DoctorVideoCallPage() {
   const router = useRouter()
@@ -34,6 +35,8 @@ export default function DoctorVideoCallPage() {
   const [isCallAccepted, setIsCallAccepted] = useState(false)
   const [isIncomingCall, setIsIncomingCall] = useState(false)
   const [ringbackTone, setRingbackTone] = useState(false)
+  const [showIncomingCall, setShowIncomingCall] = useState(false)
+  const [callerInfo, setCallerInfo] = useState(null)
 
   // References for WebRTC
   const localVideoRef = useRef(null)
@@ -43,6 +46,7 @@ export default function DoctorVideoCallPage() {
   const callDocRef = useRef(null)
   const callTimerRef = useRef(null)
   const audioRef = useRef(null)
+  const ringbackAudioRef = useRef(null)
 
   // Fetch patient information
   useEffect(() => {
@@ -74,6 +78,19 @@ export default function DoctorVideoCallPage() {
     fetchPatientInfo()
   }, [params.id])
 
+  // Listen for incoming calls
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "activeCall", user.uid), (doc) => {
+      const data = doc.data()
+      if (data && data.status === "ringing" && data.initiator !== user.uid) {
+        setShowIncomingCall(true)
+        setCallerInfo(data.initiatorInfo)
+      }
+    })
+
+    return () => unsubscribe()
+  }, [user.uid])
+
   // Play ringback tone
   useEffect(() => {
     if (ringbackTone && audioRef.current) {
@@ -89,6 +106,16 @@ export default function DoctorVideoCallPage() {
         audioRef.current.pause()
         audioRef.current.currentTime = 0
       }
+    }
+  }, [ringbackTone])
+
+  // Play ringback tone when calling
+  useEffect(() => {
+    if (ringbackTone && ringbackAudioRef.current) {
+      ringbackAudioRef.current.play().catch(console.error)
+    } else if (ringbackAudioRef.current) {
+      ringbackAudioRef.current.pause()
+      ringbackAudioRef.current.currentTime = 0
     }
   }, [ringbackTone])
 
@@ -195,6 +222,11 @@ export default function DoctorVideoCallPage() {
         type: "video",
         status: "ringing",
         initiator: user.uid,
+        initiatorInfo: {
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          role: "doctor",
+        },
         endedAt: null,
         messages: [],
       }
@@ -208,6 +240,11 @@ export default function DoctorVideoCallPage() {
         callId: callRef.id,
         participants: [user.uid, params.id],
         initiator: user.uid,
+        initiatorInfo: {
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          role: "doctor",
+        },
         type: "video",
         createdAt: serverTimestamp(),
       })
@@ -546,10 +583,38 @@ export default function DoctorVideoCallPage() {
     }
   }
 
+  // Handle incoming call acceptance
+  const handleAcceptCall = async () => {
+    setShowIncomingCall(false)
+    setIsIncomingCall(true)
+    await setupWebRTC()
+  }
+
+  // Handle incoming call rejection
+  const handleRejectCall = async () => {
+    setShowIncomingCall(false)
+    if (callDocRef.current) {
+      await updateDoc(callDocRef.current, {
+        status: "rejected",
+        endedAt: serverTimestamp(),
+      })
+    }
+  }
+
   return (
     <div className="h-screen w-full bg-graphite text-white">
       {/* Ringback tone */}
       <audio ref={audioRef} src="/sounds/ringback-tone.mp3" loop />
+      <audio ref={ringbackAudioRef} src="/sounds/ringback.mp3" loop />
+
+      {/* Incoming call notification */}
+      {showIncomingCall && callerInfo && (
+        <IncomingCallNotification
+          caller={callerInfo}
+          onAccept={handleAcceptCall}
+          onReject={handleRejectCall}
+        />
+      )}
 
       {/* Main video area */}
       <div className="relative h-full w-full">

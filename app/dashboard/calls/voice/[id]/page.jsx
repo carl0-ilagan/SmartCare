@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Mic, MicOff, Phone, User, MessageSquare, Volume2, VolumeX, X } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
+import { useCall } from "@/contexts/call-context"
 import {
   doc,
   getDoc,
@@ -32,6 +33,7 @@ export default function VoiceCallPage() {
   const router = useRouter()
   const params = useParams()
   const { user } = useAuth()
+  const { startRingback, stopRingback } = useCall()
   const [isMuted, setIsMuted] = useState(false)
   const [isSpeakerOn, setIsSpeakerOn] = useState(true)
   const [callTime, setCallTime] = useState(0)
@@ -44,6 +46,7 @@ export default function VoiceCallPage() {
   const [isCallAccepted, setIsCallAccepted] = useState(false)
   const [isIncomingCall, setIsIncomingCall] = useState(false)
   const [callQuality, setCallQuality] = useState(null)
+  const [error, setError] = useState(null)
 
   // References for WebRTC
   const audioRef = useRef(null)
@@ -159,6 +162,9 @@ export default function VoiceCallPage() {
             }
           })
         }
+
+        // Start ringback tone for outgoing call
+        startRingback()
       } catch (error) {
         console.error("Error setting up WebRTC:", error)
         alert("Could not access microphone. Please check permissions and try again.")
@@ -181,8 +187,9 @@ export default function VoiceCallPage() {
       if (statsIntervalRef.current) {
         clearInterval(statsIntervalRef.current)
       }
+      stopRingback()
     }
-  }, [user, params.id, doctorInfo])
+  }, [user, params.id, doctorInfo, startRingback, stopRingback])
 
   // Start call timer
   const startCallTimer = () => {
@@ -283,6 +290,23 @@ export default function VoiceCallPage() {
       audioRef.current.muted = !audioRef.current.muted
       setIsSpeakerOn(!isSpeakerOn)
     }
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="p-6 bg-white rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Error</h2>
+          <p className="text-gray-600">{error}</p>
+          <button
+            onClick={() => router.push('/dashboard/messages')}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Return to Messages
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
